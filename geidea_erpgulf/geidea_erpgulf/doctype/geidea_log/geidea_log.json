@@ -1,0 +1,52 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-09-08 07:57:43.566970",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "input_response",
+  "column_break_zskp",
+  "output_response"
+ ],
+ "fields": [
+  {
+   "fieldname": "input_response",
+   "fieldtype": "Long Text",
+   "label": "Input Response"
+  },
+  {
+   "fieldname": "column_break_zskp",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "output_response",
+   "fieldtype": "Long Text",
+   "label": "Output Response"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-09-08 08:04:37.921953",
+ "modified_by": "Administrator",
+ "module": "Geidea Erpgulf",
+ "name": "GEIdea Log",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

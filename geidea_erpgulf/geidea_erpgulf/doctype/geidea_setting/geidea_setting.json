@@ -1,0 +1,72 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-08-22 06:40:54.894024",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "protocol",
+  "broker_url",
+  "port",
+  "column_break_bycb",
+  "username",
+  "password"
+ ],
+ "fields": [
+  {
+   "fieldname": "broker_url",
+   "fieldtype": "Data",
+   "label": "Broker Host"
+  },
+  {
+   "fieldname": "username",
+   "fieldtype": "Data",
+   "label": "Username"
+  },
+  {
+   "fieldname": "column_break_bycb",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "password",
+   "fieldtype": "Password",
+   "label": "Password "
+  },
+  {
+   "default": "8883",
+   "fieldname": "port",
+   "fieldtype": "Data",
+   "label": "Port"
+  },
+  {
+   "default": "ssl",
+   "fieldname": "protocol",
+   "fieldtype": "Select",
+   "label": "Protocol",
+   "options": "tcp\nssl"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "issingle": 1,
+ "links": [],
+ "modified": "2025-08-22 06:52:51.455056",
+ "modified_by": "Administrator",
+ "module": "Geidea Erpgulf",
+ "name": "Geidea Setting",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
