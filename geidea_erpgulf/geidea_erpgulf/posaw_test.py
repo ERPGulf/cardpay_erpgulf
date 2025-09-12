@@ -71,7 +71,8 @@ def send_request_to_device():
     if broadcast_status["status"] != "sent":
         return broadcast_status
 
-    timeout = 10
+    geidea_setting = frappe.get_single("Geidea Setting")
+    timeout = int(geidea_setting.timespan)
     waited = 0
     # while waited < timeout:
     #     cached = get_uuid_response(uuid)
