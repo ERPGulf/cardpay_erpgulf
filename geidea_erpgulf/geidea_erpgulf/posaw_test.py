@@ -67,7 +67,7 @@ def send_request_to_device():
     # Store input and MQTT payload in Redis
     redis_client.hset(uuid, "input_response", json.dumps(data))
     redis_client.hset(uuid, "output_response", json.dumps(broadcast_status.get("message")))
-
+                                                                 
     if broadcast_status["status"] != "sent":
         return broadcast_status
 
@@ -110,6 +110,13 @@ def send_request_to_device_broadcast(data):
     if not user:
         frappe.throw("User is required")
 
+    device_doc = frappe.get_doc("GEIdea Device Map", {"user": user})
+    if not device_doc:
+        frappe.throw(f"No device mapping found for user {user}")
+
+    # ✅ Check if device is enabled
+    if int(device_doc.custom_device_enabled or 0) != 1:
+        return {"status": "disabled", "message": f"Device is not enabled for user {user}"}
     topic = frappe.db.get_value("GEIdea Device Map", {"user": user}, "data")
     if not topic:
         frappe.throw(f"No device mapping found for user {user}")
