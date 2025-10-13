@@ -71,7 +71,7 @@ def send_request_to_device():
     if broadcast_status["status"] != "sent":
         return broadcast_status
 
-    geidea_setting = frappe.get_single("Geidea Setting")
+    geidea_setting = frappe.get_single("MQTT Setting")
     timeout = int(geidea_setting.timespan)
     waited = 0
     # while waited < timeout:
@@ -121,7 +121,7 @@ def send_request_to_device_broadcast(data):
     if not topic:
         frappe.throw(f"No device mapping found for user {user}")
 
-    geidea_setting = frappe.get_single("Geidea Setting")
+    geidea_setting = frappe.get_single("MQTT Setting")
     broker_host = geidea_setting.broker_url
     broker_port = int(geidea_setting.port)
     protocol = (geidea_setting.protocol or "").lower()

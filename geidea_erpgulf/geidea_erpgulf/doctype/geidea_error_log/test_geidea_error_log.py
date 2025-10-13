@@ -5,5 +5,5 @@
 from frappe.tests.utils import FrappeTestCase
 
 
-class TestGeideaSetting(FrappeTestCase):
+class TestGEIdeaErrorLog(FrappeTestCase):
 	pass

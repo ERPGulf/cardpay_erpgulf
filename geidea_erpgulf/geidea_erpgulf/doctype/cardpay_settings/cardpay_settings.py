@@ -5,5 +5,5 @@
 from frappe.model.document import Document
 
 
-class GeideaSetting(Document):
+class CardPaySettings(Document):
 	pass

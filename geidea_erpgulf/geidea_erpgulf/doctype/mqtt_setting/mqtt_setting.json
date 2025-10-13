@@ -1,23 +1,38 @@
 {
  "actions": [],
  "allow_rename": 1,
- "creation": "2025-08-22 06:40:54.894024",
+ "creation": "2025-10-13 12:31:04.284861",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
   "protocol",
   "broker_url",
   "port",
-  "column_break_bycb",
+  "column_break_whnc",
   "username",
   "password",
   "timespan"
  ],
  "fields": [
   {
+   "fieldname": "protocol",
+   "fieldtype": "Select",
+   "label": "Protocol",
+   "options": "tcp\nssl"
+  },
+  {
    "fieldname": "broker_url",
    "fieldtype": "Data",
    "label": "Broker Host"
+  },
+  {
+   "fieldname": "port",
+   "fieldtype": "Data",
+   "label": "Port"
+  },
+  {
+   "fieldname": "column_break_whnc",
+   "fieldtype": "Column Break"
   },
   {
    "fieldname": "username",
@@ -25,26 +40,9 @@
    "label": "Username"
   },
   {
-   "fieldname": "column_break_bycb",
-   "fieldtype": "Column Break"
-  },
-  {
    "fieldname": "password",
    "fieldtype": "Password",
    "label": "Password "
-  },
-  {
-   "default": "8883",
-   "fieldname": "port",
-   "fieldtype": "Data",
-   "label": "Port"
-  },
-  {
-   "default": "ssl",
-   "fieldname": "protocol",
-   "fieldtype": "Select",
-   "label": "Protocol",
-   "options": "tcp\nssl"
   },
   {
    "fieldname": "timespan",
@@ -55,10 +53,10 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-09-12 09:25:48.764249",
+ "modified": "2025-10-13 12:35:03.081399",
  "modified_by": "Administrator",
  "module": "Geidea Erpgulf",
- "name": "Geidea Setting",
+ "name": "MQTT Setting",
  "owner": "Administrator",
  "permissions": [
   {

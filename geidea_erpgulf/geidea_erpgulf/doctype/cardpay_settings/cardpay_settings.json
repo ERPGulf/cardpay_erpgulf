@@ -1,0 +1,87 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-10-13 13:13:01.336791",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "name1",
+  "provider",
+  "connection_type",
+  "machine_ip",
+  "merchant_id",
+  "api_key",
+  "secret_key",
+  "optional"
+ ],
+ "fields": [
+  {
+   "default": "GEIDEA",
+   "fieldname": "provider",
+   "fieldtype": "Select",
+   "label": "Provider",
+   "options": "GEIDEA\nNEOLEAP"
+  },
+  {
+   "default": "IP",
+   "fieldname": "connection_type",
+   "fieldtype": "Select",
+   "label": "Connection Type",
+   "options": "IP\nUSP"
+  },
+  {
+   "fieldname": "machine_ip",
+   "fieldtype": "Data",
+   "label": "Machine IP"
+  },
+  {
+   "fieldname": "merchant_id",
+   "fieldtype": "Data",
+   "label": "Merchant ID"
+  },
+  {
+   "fieldname": "api_key",
+   "fieldtype": "Data",
+   "label": "API KEY"
+  },
+  {
+   "fieldname": "secret_key",
+   "fieldtype": "Data",
+   "label": "Secret Key"
+  },
+  {
+   "fieldname": "optional",
+   "fieldtype": "Data",
+   "label": "Optional"
+  },
+  {
+   "fieldname": "name1",
+   "fieldtype": "Data",
+   "label": "Name"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-10-13 13:24:18.381874",
+ "modified_by": "Administrator",
+ "module": "Geidea Erpgulf",
+ "name": "CardPay Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
