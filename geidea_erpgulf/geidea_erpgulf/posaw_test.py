@@ -12,7 +12,7 @@ redis_client = redis.StrictRedis(host='localhost', port=6379, db=0, decode_respo
 def set_uuid_status(uuid, status):
     redis_client.hset(uuid, "status", status)
     redis_client.hset(uuid, "created_at", str(time.time()))
-    redis_client.expire(uuid, 60)  # Auto-expire after 60s
+    redis_client.expire(uuid, 40)  # Auto-expire after 60s
 
 def get_uuid_status(uuid):
     return redis_client.hget(uuid, "status")
@@ -26,7 +26,8 @@ def get_uuid_response(uuid):
 
 def delete_uuid(uuid):
     redis_client.delete(uuid)
-def log_geidea(uuid, final_response=None, final_status="Unknown"):
+    
+def log_geidea(uuid, final_response=None, final_status="Unknown",input_response=None, output_response=None):
     try:
         input_response = redis_client.hget(uuid, "input_response")
         output_response = redis_client.hget(uuid, "output_response")
@@ -67,6 +68,8 @@ def send_request_to_device():
     set_uuid_status(uuid, "pending")
 
     broadcast_status = send_request_to_device_broadcast(data)
+    input_resp = json.dumps(data)
+    output_resp = json.dumps(broadcast_status.get("message"))
 
     # Store input and MQTT payload in Redis
     redis_client.hset(uuid, "input_response", json.dumps(data))
@@ -108,7 +111,9 @@ def send_request_to_device():
     log_geidea(
     uuid,
     final_response={"status": "timeout", "message": "No response from device"},
-    final_status="Timeout"
+    final_status="Timeout",
+    input_response=input_resp,
+    output_response=output_resp
 )
     delete_uuid(uuid)
     return {"status": "timeout", "message": "No response from device", "uuid": uuid}
@@ -186,8 +191,11 @@ def device_callback():
     # ✅ Detect "approved" anywhere in the response (case-insensitive)
     response_str = json.dumps(data).lower()
     final_status = "Approved" if "approved" in response_str else "Declined"
-
+    input_resp = redis_client.hget(uuid, "input_response")
+    output_resp = redis_client.hget(uuid, "output_response")
     
-    log_geidea(uuid, final_response=data, final_status=final_status)
+    log_geidea(uuid, final_response=data, final_status=final_status,
+    input_response=input_resp,
+    output_response=output_resp)
 
     return {"status": "ok", "uuid": uuid}
