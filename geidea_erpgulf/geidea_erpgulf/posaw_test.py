@@ -26,27 +26,31 @@ def get_uuid_response(uuid):
 
 def delete_uuid(uuid):
     redis_client.delete(uuid)
-
-def log_geidea(uuid, final_response,final_status):
+def log_geidea(uuid, final_response=None, final_status="Unknown"):
     try:
         input_response = redis_client.hget(uuid, "input_response")
         output_response = redis_client.hget(uuid, "output_response")
+
+        final_response = final_response or {"status": "unknown"}
         final_response_str = json.dumps(final_response).lower()
 
-        # Set custom_status_ as "Approved" or "Declined"
-        custom_status = "Approved" if "approved" in final_response_str else "Declined"
+        # Determine Approved/Declined only if no explicit status provided
+        if final_status == "Unknown":
+            final_status = "Approved" if "approved" in final_response_str else "Declined"
+
         log_doc = frappe.get_doc({
             "doctype": "GEIdea Log",
             "uuid": uuid,
             "input_response": input_response,
             "output_response": output_response,
             "custom_status_": json.dumps(final_response),
-            "custom_status_of_payment" :final_status
+            "custom_status_of_payment": final_status
         })
         log_doc.insert(ignore_permissions=True)
         frappe.db.commit()
+
     except Exception as e:
-        frappe.log_error("GEIdea Log Error", str(e))
+        frappe.log_error("GEIdea Log Error", f"UUID: {uuid} | {str(e)}")
 
 @frappe.whitelist(allow_guest=True)
 def send_request_to_device():
@@ -101,7 +105,11 @@ def send_request_to_device():
         time.sleep(1)
         waited += 1
 
-    log_geidea(uuid, final_response={"status": "timeout", "message": "No response from device"})
+    log_geidea(
+    uuid,
+    final_response={"status": "timeout", "message": "No response from device"},
+    final_status="Timeout"
+)
     delete_uuid(uuid)
     return {"status": "timeout", "message": "No response from device", "uuid": uuid}
 
