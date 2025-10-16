@@ -8,7 +8,8 @@
  "field_order": [
   "section_break_yoos",
   "user",
-  "data"
+  "data",
+  "amended_from"
  ],
  "fields": [
   {
@@ -24,15 +25,25 @@
   {
    "fieldname": "data",
    "fieldtype": "Data",
-   "label": "Device Topic",
+   "label": "Device-Topic",
    "no_copy": 1,
    "unique": 1
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "GEIdea Device Map",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-10-16 09:52:53.998913",
+ "modified": "2025-10-16 10:15:57.877061",
  "modified_by": "Administrator",
  "module": "Geidea Erpgulf",
  "name": "GEIdea Device Map",

@@ -204,7 +204,7 @@
   "modified": "2025-10-13 12:27:35.124270",
   "module": "Geidea Erpgulf",
   "name": "GEIdea Device Map-custom_device_enabled",
-  "no_copy": 0,
+  "no_copy": 1,
   "non_negative": 0,
   "options": null,
   "permlevel": 0,
