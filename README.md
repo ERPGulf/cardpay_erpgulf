@@ -21,19 +21,19 @@ It allows backend systems to send payment requests to POS terminals and receive 
 
 **🧩 Installation Requirements**
 
-# ✅ Step 1: Activate Bench Environment
+**✅ Step 1: Activate Bench Environment**
 
 cd /opt/frappe-bench
 source env/bin/activate
 
-# ✅ Step 2: Install Required Python Packages
+**✅ Step 2: Install Required Python Packages**
 
 Install the MQTT and Redis dependencies:
 
 pip install paho-mqtt
 pip install redis
 
-# ✅ Step 3: Verify Installation
+**✅ Step 3: Verify Installation**
 
 You can confirm successful installation using:
 
@@ -45,7 +45,7 @@ Expected output should show version details such as:
 Name: paho-mqtt
 Version: 1.6.1
 
-# ✅ Step 4: Restart Bench
+**✅ Step 4: Restart Bench**
 
 After installation, restart your Frappe bench:
 
