@@ -12,7 +12,7 @@ redis_client = redis.StrictRedis(host='localhost', port=6379, db=0, decode_respo
 def set_uuid_status(uuid, status):
     redis_client.hset(uuid, "status", status)
     redis_client.hset(uuid, "created_at", str(time.time()))
-    redis_client.expire(uuid, 40)  # Auto-expire after 60s
+    redis_client.expire(uuid, 60)  # Auto-expire after 60s
 
 def get_uuid_status(uuid):
     return redis_client.hget(uuid, "status")
