@@ -121,18 +121,20 @@ def send_request_to_device():
 def send_request_to_device_broadcast(data):
     user = data.get("user")
     if not user:
-        frappe.throw("User is required")
+        return {"status": "no_user", "message": "User not registered for device mapping"}
+
 
     device_doc = frappe.get_doc("GEIdea Device Map", {"user": user})
     if not device_doc:
-        frappe.throw(f"No device mapping found for user {user}")
-
+        return {"status": "user_not_registered_for_device_mapping", "message": f"User {user} not found in device map"}
     # ✅ Check if device is enabled
     if int(device_doc.custom_device_enabled or 0) != 1:
-        return {"status": "disabled", "message": f"Device is not enabled for user {user}"}
+        return {"status": "disabled", "message": f"Device is not enabled for user {user}"} 
+
     topic = frappe.db.get_value("GEIdea Device Map", {"user": user}, "data")
     if not topic:
-        frappe.throw(f"No device mapping found for user {user}")
+        frappe.throw(f"No device topic found for user {user}")
+        # return {"status": "no_topic", "message": f"No device topic found for user {user}"}
 
     geidea_setting = frappe.get_single("MQTT Setting")
     broker_host = geidea_setting.broker_url
@@ -187,15 +189,5 @@ def device_callback():
         return {"status": "expired", "uuid": uuid, "message": "UUID not found or expired"}
 
     set_uuid_response(uuid, data)
-
-    # ✅ Detect "approved" anywhere in the response (case-insensitive)
-    # response_str = json.dumps(data).lower()
-    # final_status = "Approved" if "approved" in response_str else "Declined"
-    # input_resp = redis_client.hget(uuid, "input_response")
-    # output_resp = redis_client.hget(uuid, "output_response")
-    
-    # log_geidea(uuid, final_response=data, final_status=final_status,
-    # input_response=input_resp,
-    # output_response=output_resp)
 
     return {"status": "ok", "uuid": uuid}
