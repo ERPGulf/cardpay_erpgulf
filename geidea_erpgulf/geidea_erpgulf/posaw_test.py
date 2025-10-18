@@ -181,7 +181,7 @@ def device_callback():
     status = get_uuid_status(uuid)
     if status != "pending":
         frappe.log_error(
-            title=f"Late or invalid callback for UUID {uuid}",
+            title=f"Payment not received/timeout or invalid callback for UUID {uuid}",
             message=f"Callback received after timeout or for unknown UUID"
         )
         return {"status": "expired", "uuid": uuid, "message": "UUID not found or expired"}
@@ -189,10 +189,10 @@ def device_callback():
     set_uuid_response(uuid, data)
 
     # ✅ Detect "approved" anywhere in the response (case-insensitive)
-    response_str = json.dumps(data).lower()
-    final_status = "Approved" if "approved" in response_str else "Declined"
-    input_resp = redis_client.hget(uuid, "input_response")
-    output_resp = redis_client.hget(uuid, "output_response")
+    # response_str = json.dumps(data).lower()
+    # final_status = "Approved" if "approved" in response_str else "Declined"
+    # input_resp = redis_client.hget(uuid, "input_response")
+    # output_resp = redis_client.hget(uuid, "output_response")
     
     # log_geidea(uuid, final_response=data, final_status=final_status,
     # input_response=input_resp,
