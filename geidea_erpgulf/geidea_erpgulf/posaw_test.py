@@ -26,7 +26,16 @@ def get_uuid_response(uuid):
 
 def delete_uuid(uuid):
     redis_client.delete(uuid)
-    
+
+def is_device_busy(topic):
+    return redis_client.exists(f"device_active:{topic}")
+
+def set_device_busy(topic, uuid):
+    redis_client.set(f"device_active:{topic}", uuid, ex=300)  # auto-expire 5 min
+
+def clear_device_busy(topic):
+    redis_client.delete(f"device_active:{topic}")
+
 def log_geidea(uuid, final_response=None, final_status="Unknown",input_response=None, output_response=None):
     try:
         input_response = redis_client.hget(uuid, "input_response")
@@ -102,6 +111,9 @@ def send_request_to_device():
 
             # Log with clean status
             log_geidea(uuid, final_response=cached, final_status=final_status)
+            device_topic = broadcast_status.get("topic")
+            if device_topic:
+                clear_device_busy(device_topic)
 
             delete_uuid(uuid)
             return cached
@@ -115,6 +127,10 @@ def send_request_to_device():
     input_response=input_resp,
     output_response=output_resp
 )
+    device_topic = broadcast_status.get("topic")
+    if device_topic:
+        clear_device_busy(device_topic)
+
     delete_uuid(uuid)
     return {"status": "timeout", "message": "No response from device", "uuid": uuid}
 
@@ -127,10 +143,9 @@ def send_request_to_device_broadcast(data):
 
     try:
         device_doc = frappe.get_doc("GEIdea Device Map", {"user": user})
-    except frappe.DoesNotExistError:
+    except (frappe.DoesNotExistError, frappe.PermissionError):
         return {"status": "user_not_registered_for_device_mapping", "message": f"User {user} not found in device map"}
-    except frappe.PermissionError:
-        return {"status": "user_not_registered_for_device_mapping", "message": f"User {user} not found in device map"}
+   
     if not device_doc:
         return {"status": "user_not_registered_for_device_mapping", "message": f"User {user} not found in device map"}
 
@@ -142,6 +157,12 @@ def send_request_to_device_broadcast(data):
     if not topic:
         frappe.throw(f"No device topic found for user {user}")
         # return {"status": "no_topic", "message": f"No device topic found for user {user}"}
+
+    if is_device_busy(topic):
+        return {"status": "pending_request", "message": f"Device for user {user} already has a pending request"}
+
+    uuid = data.get("uuid")
+    set_device_busy(topic, uuid)
 
     geidea_setting = frappe.get_single("MQTT Setting")
     broker_host = geidea_setting.broker_url
@@ -196,5 +217,8 @@ def device_callback():
         return {"status": "expired", "uuid": uuid, "message": "UUID not found or expired"}
 
     set_uuid_response(uuid, data)
+    device_topic = redis_client.hget(uuid, "output_response")  # stored during send_request
+    if device_topic:
+        clear_device_busy(device_topic)
 
     return {"status": "ok", "uuid": uuid}
