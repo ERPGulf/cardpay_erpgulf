@@ -119,14 +119,21 @@ def send_request_to_device():
     return {"status": "timeout", "message": "No response from device", "uuid": uuid}
 
 def send_request_to_device_broadcast(data):
+    
     user = data.get("user")
     if not user:
         return {"status": "no_user", "message": "User not registered for device mapping"}
 
 
-    device_doc = frappe.get_doc("GEIdea Device Map", {"user": user})
+    try:
+        device_doc = frappe.get_doc("GEIdea Device Map", {"user": user})
+    except frappe.DoesNotExistError:
+        return {"status": "user_not_registered_for_device_mapping", "message": f"User {user} not found in device map"}
+    except frappe.PermissionError:
+        return {"status": "user_not_registered_for_device_mapping", "message": f"User {user} not found in device map"}
     if not device_doc:
         return {"status": "user_not_registered_for_device_mapping", "message": f"User {user} not found in device map"}
+
     # ✅ Check if device is enabled
     if int(device_doc.custom_device_enabled or 0) != 1:
         return {"status": "disabled", "message": f"Device is not enabled for user {user}"} 
