@@ -194,8 +194,8 @@ def device_callback():
     input_resp = redis_client.hget(uuid, "input_response")
     output_resp = redis_client.hget(uuid, "output_response")
     
-    log_geidea(uuid, final_response=data, final_status=final_status,
-    input_response=input_resp,
-    output_response=output_resp)
+    # log_geidea(uuid, final_response=data, final_status=final_status,
+    # input_response=input_resp,
+    # output_response=output_resp)
 
     return {"status": "ok", "uuid": uuid}
