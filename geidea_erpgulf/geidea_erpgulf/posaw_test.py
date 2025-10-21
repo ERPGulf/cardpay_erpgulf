@@ -153,7 +153,11 @@ def send_request_to_device_broadcast(data):
     if int(device_doc.custom_device_enabled or 0) != 1:
         return {"status": "disabled", "message": f"Device is not enabled for user {user}"} 
 
-    topic = frappe.db.get_value("GEIdea Device Map", {"user": user}, "data")
+    # topic = frappe.db.get_value("GEIdea Device Map", {"user": user}, "data")
+    device_doc = frappe.get_doc("GEIdea Device Map", {"user": user})
+    topic = device_doc.data
+    custom_print_config = device_doc.custom_print_reciept_configuration  # ✅ get your new field
+
     if not topic:
         frappe.throw(f"No device topic found for user {user}")
         # return {"status": "no_topic", "message": f"No device topic found for user {user}"}
@@ -173,6 +177,7 @@ def send_request_to_device_broadcast(data):
 
     payload = dict(data)
     payload["device_topic"] = topic
+    payload["custom_print_reciept_configuration"] = custom_print_config  # 👈 Added here
     message = json.dumps(payload)
 
     status = "failed"
