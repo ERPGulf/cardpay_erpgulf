@@ -31,7 +31,7 @@ def is_device_busy(topic):
     return redis_client.exists(f"device_active:{topic}")
 
 def set_device_busy(topic, uuid):
-    redis_client.set(f"device_active:{topic}", uuid, ex=300)  # auto-expire 5 min
+    redis_client.set(f"device_active:{topic}", uuid, ex=60)  # auto-expire 5 min
 
 def clear_device_busy(topic):
     redis_client.delete(f"device_active:{topic}")
@@ -156,7 +156,12 @@ def send_request_to_device_broadcast(data):
     # topic = frappe.db.get_value("GEIdea Device Map", {"user": user}, "data")
     device_doc = frappe.get_doc("GEIdea Device Map", {"user": user})
     topic = device_doc.data
-    custom_print_config = device_doc.custom_print_reciept_configuration  # ✅ get your new field
+    # custom_print_config = device_doc.custom_print_reciept_configuration  # ✅ get your new field
+    custom_print_config_number = 0  
+
+    custom_print_config = device_doc.custom_print_reciept_configuration
+    if custom_print_config:
+        custom_print_config_number = int(custom_print_config.split('-')[0].strip())
 
     if not topic:
         frappe.throw(f"No device topic found for user {user}")
@@ -177,7 +182,7 @@ def send_request_to_device_broadcast(data):
 
     payload = dict(data)
     payload["device_topic"] = topic
-    payload["custom_print_reciept_configuration"] = custom_print_config  # 👈 Added here
+    payload["custom_print_reciept_configuration"] = custom_print_config_number # 👈 Added here
     message = json.dumps(payload)
 
     status = "failed"

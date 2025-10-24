@@ -430,7 +430,7 @@
   "name": "GEIdea Device Map-custom_print_reciept_configuration",
   "no_copy": 0,
   "non_negative": 0,
-  "options": "0\n1\n2",
+  "options": "0 - Dont print receipt\n1 - Print reciept\n2 - Let cashier select the printing",
   "permlevel": 0,
   "precision": "",
   "print_hide": 0,
