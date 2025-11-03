@@ -72,6 +72,13 @@ def send_request_to_device():
     uuid = data.get("uuid")
     if not uuid:
         frappe.throw("UUID is required")
+        
+    if "return" not in data:
+        frappe.throw("'return' field is required in the JSON input")
+
+    # ✅ If return = 1, transaction_id is mandatory
+    if data.get("return") == 1 and not data.get("transaction_id"):
+        frappe.throw("Transaction ID is mandatory when 'return' is 1")
 
     # frappe.log_error("Send Request", f"Received UUID: {uuid}")
     set_uuid_status(uuid, "pending")
