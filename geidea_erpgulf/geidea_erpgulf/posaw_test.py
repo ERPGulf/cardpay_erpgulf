@@ -188,7 +188,7 @@ def send_request_to_device_broadcast(data):
 
     geidea_setting = frappe.get_single("MQTT Setting")
     broker_host = geidea_setting.broker_url
-    broker_port = int(geidea_setting.port)
+    broker_port = int(geidea_setting.port or 1883)  # default MQTT port
     protocol = (geidea_setting.protocol or "").lower()
     mqtt_username = geidea_setting.username
     mqtt_password = geidea_setting.get_password("password")
