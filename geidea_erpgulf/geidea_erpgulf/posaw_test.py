@@ -3,43 +3,46 @@ import json
 import ssl
 import paho.mqtt.client as mqtt
 import time
-import redis
+# import redis
 
 # Redis setup
-redis_client = redis.StrictRedis(host='localhost', port=6379, db=0, decode_responses=True)
+# redis_client = redis.StrictRedis(host='localhost', port=6379, db=0, decode_responses=True)
 
 # Redis utility functions
+
 def set_uuid_status(uuid, status):
-    redis_client.hset(uuid, "status", status)
-    redis_client.hset(uuid, "created_at", str(time.time()))
-    redis_client.expire(uuid, 60)  # Auto-expire after 60s
+    frappe.cache().hset(uuid, "status", status)
+    frappe.cache().hset(uuid, "created_at", str(time.time()))
 
 def get_uuid_status(uuid):
-    return redis_client.hget(uuid, "status")
+    return frappe.cache().hget(uuid, "status")
 
 def set_uuid_response(uuid, response):
-    redis_client.hset(uuid, "response", json.dumps(response))
+    frappe.cache().hset(uuid, "response", json.dumps(response))
 
 def get_uuid_response(uuid):
-    cached = redis_client.hget(uuid, "response")
+    cached = frappe.cache().hget(uuid, "response")
     return json.loads(cached) if cached else None
 
 def delete_uuid(uuid):
-    redis_client.delete(uuid)
+    frappe.cache().delete_key(uuid)
+
 
 def is_device_busy(topic):
-    return redis_client.exists(f"device_active:{topic}")
+    return frappe.cache().get_value(f"device_active:{topic}") is not None
 
 def set_device_busy(topic, uuid):
-    redis_client.set(f"device_active:{topic}", uuid, ex=60)  # auto-expire 5 min
+    frappe.cache().set_value(f"device_active:{topic}", uuid, expires_in_sec=60)
+    frappe.cache().hset(uuid, "device_topic", topic)
 
 def clear_device_busy(topic):
-    redis_client.delete(f"device_active:{topic}")
+    frappe.cache().delete_key(f"device_active:{topic}")
 
 def log_geidea(uuid, final_response=None, final_status="Unknown",input_response=None, output_response=None):
     try:
-        input_response = redis_client.hget(uuid, "input_response")
-        output_response = redis_client.hget(uuid, "output_response")
+
+        input_response = frappe.cache().hget(uuid, "input_response")
+        output_response = frappe.cache().hget(uuid, "output_response")
 
         final_response = final_response or {"status": "unknown"}
         final_response_str = json.dumps(final_response).lower()
@@ -91,8 +94,8 @@ def send_request_to_device():
     output_resp = json.dumps(broadcast_status.get("message"))
 
     # Store input and MQTT payload in Redis
-    redis_client.hset(uuid, "input_response", json.dumps(data))
-    redis_client.hset(uuid, "output_response", json.dumps(broadcast_status.get("message")))
+    frappe.cache().hset(uuid, "input_response", json.dumps(data))
+    frappe.cache().hset(uuid, "output_response", json.dumps(broadcast_status.get("message")))
                                                                  
     if broadcast_status["status"] != "sent":
         return broadcast_status
@@ -131,12 +134,12 @@ def send_request_to_device():
         waited += 1
 
     log_geidea(
-    uuid,
-    final_response={"status": "timeout", "message": "No response from device"},
-    final_status="Timeout",
-    input_response=input_resp,
-    output_response=output_resp
-)
+        uuid,
+        final_response={"status": "timeout", "message": "No response from device"},
+        final_status="Timeout",
+        input_response=input_resp,
+        output_response=output_resp
+    )
     device_topic = broadcast_status.get("topic")
     if device_topic:
         clear_device_busy(device_topic)
@@ -237,7 +240,7 @@ def device_callback():
         return {"status": "expired", "uuid": uuid, "message": "UUID not found or expired"}
 
     set_uuid_response(uuid, data)
-    device_topic = redis_client.hget(uuid, "output_response")  # stored during send_request
+    device_topic = frappe.cache().hget(uuid, "device_topic")
     if device_topic:
         clear_device_busy(device_topic)
 
