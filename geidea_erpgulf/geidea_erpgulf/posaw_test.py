@@ -191,7 +191,7 @@ def send_request_to_device_broadcast(data):
     broker_port = int(geidea_setting.port or 1883)  # default MQTT port
     protocol = (geidea_setting.protocol or "").lower()
     mqtt_username = geidea_setting.username
-    mqtt_password = geidea_setting.get_password("password")
+    mqtt_password = geidea_setting.get_password("password") if geidea_setting.password else None
 
     payload = dict(data)
     payload["device_topic"] = topic
