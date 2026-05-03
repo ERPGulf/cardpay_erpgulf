@@ -101,7 +101,7 @@ def send_request_to_device():
         return broadcast_status
 
     geidea_setting = frappe.get_single("MQTT Setting")
-    timeout = int(geidea_setting.timespan)
+    timeout = int(geidea_setting.timespan or 30)  # default 30 seconds
     waited = 0
     # while waited < timeout:
     #     cached = get_uuid_response(uuid)
