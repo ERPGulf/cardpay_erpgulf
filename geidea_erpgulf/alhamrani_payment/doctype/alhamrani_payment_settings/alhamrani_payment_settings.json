@@ -1,0 +1,139 @@
+{
+    "actions": [],
+    "creation": "2026-08-13 00:00:00.000000",
+    "doctype": "DocType",
+    "engine": "InnoDB",
+    "field_order": [
+        "hub_url",
+        "hub_name",
+        "callback_name",
+        "column_break_amount",
+        "amount_multiplier",
+        "zero_pad_amount",
+        "amount_pad_length",
+        "column_break_timeouts",
+        "purchase_timeout_seconds",
+        "query_timeout_seconds",
+        "response_max_age_seconds",
+        "column_break_guards",
+        "require_tid_match",
+        "block_submit_without_approval"
+    ],
+    "fields": [
+        {
+            "default": "http://localhost:9000/signalr",
+            "fieldname": "hub_url",
+            "fieldtype": "Data",
+            "label": "Hub URL",
+            "reqd": 1
+        },
+        {
+            "default": "myHub",
+            "fieldname": "hub_name",
+            "fieldtype": "Data",
+            "label": "Hub Name",
+            "reqd": 1
+        },
+        {
+            "default": "addMessage",
+            "fieldname": "callback_name",
+            "fieldtype": "Data",
+            "label": "Callback Name",
+            "reqd": 1
+        },
+        {
+            "fieldname": "column_break_amount",
+            "fieldtype": "Column Break"
+        },
+        {
+            "default": "100",
+            "description": "AU's own documents disagree on minor vs major units. Verify with a real SAR 3.47 charge before go-live \u2014 the wrong setting is a 100x error.",
+            "fieldname": "amount_multiplier",
+            "fieldtype": "Select",
+            "label": "Amount Multiplier",
+            "options": "100\n1",
+            "reqd": 1
+        },
+        {
+            "default": "0",
+            "fieldname": "zero_pad_amount",
+            "fieldtype": "Check",
+            "label": "Zero Pad Amount"
+        },
+        {
+            "default": "12",
+            "depends_on": "zero_pad_amount",
+            "fieldname": "amount_pad_length",
+            "fieldtype": "Int",
+            "label": "Amount Pad Length"
+        },
+        {
+            "fieldname": "column_break_timeouts",
+            "fieldtype": "Column Break"
+        },
+        {
+            "default": "180",
+            "fieldname": "purchase_timeout_seconds",
+            "fieldtype": "Int",
+            "label": "Purchase Timeout (seconds)"
+        },
+        {
+            "default": "20",
+            "fieldname": "query_timeout_seconds",
+            "fieldtype": "Int",
+            "label": "Query Timeout (seconds)"
+        },
+        {
+            "default": "900",
+            "description": "AU doc s9.2 mandates a maximum response age. A response older than this is treated as Unconfirmed.",
+            "fieldname": "response_max_age_seconds",
+            "fieldtype": "Int",
+            "label": "Response Max Age (seconds)"
+        },
+        {
+            "fieldname": "column_break_guards",
+            "fieldtype": "Column Break"
+        },
+        {
+            "default": "1",
+            "description": "Refuse check2 when the terminal's TID does not match the Device Map's Expected TID. On Wi-Fi every till can reach every terminal, so this is the only guard against charging another customer.",
+            "fieldname": "require_tid_match",
+            "fieldtype": "Check",
+            "label": "Require TID Match"
+        },
+        {
+            "default": "1",
+            "description": "Block Sales Invoice submission when a card payment has no Approved Alhamrani Transaction.",
+            "fieldname": "block_submit_without_approval",
+            "fieldtype": "Check",
+            "label": "Block Submit Without Approval"
+        }
+    ],
+    "index_web_pages_for_search": 1,
+    "issingle": 1,
+    "links": [],
+    "modified": "2026-08-13 00:00:00.000000",
+    "modified_by": "Administrator",
+    "module": "Alhamrani Payment",
+    "name": "Alhamrani Payment Settings",
+    "owner": "Administrator",
+    "permissions": [
+        {
+            "create": 1,
+            "delete": 1,
+            "email": 1,
+            "print": 1,
+            "read": 1,
+            "role": "System Manager",
+            "share": 1,
+            "write": 1
+        },
+        {
+            "read": 1,
+            "role": "Accounts Manager"
+        }
+    ],
+    "sort_field": "modified",
+    "sort_order": "DESC",
+    "states": []
+}

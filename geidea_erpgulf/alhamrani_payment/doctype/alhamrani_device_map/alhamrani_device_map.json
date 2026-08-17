@@ -1,0 +1,131 @@
+{
+    "actions": [],
+    "allow_rename": 0,
+    "autoname": "field:user",
+    "creation": "2026-08-13 00:00:00.000000",
+    "doctype": "DocType",
+    "engine": "InnoDB",
+    "field_order": [
+        "device_enabled",
+        "user",
+        "connection",
+        "terminal_address",
+        "ecr_no",
+        "column_break_tid",
+        "expected_tid",
+        "last_seen_tid",
+        "last_seen_on",
+        "column_break_model",
+        "terminal_model",
+        "supports_bill_get",
+        "print_reciept_configuration"
+    ],
+    "fields": [
+        {
+            "default": "1",
+            "fieldname": "device_enabled",
+            "fieldtype": "Check",
+            "label": "Device Enabled"
+        },
+        {
+            "fieldname": "user",
+            "fieldtype": "Link",
+            "in_list_view": 1,
+            "label": "User",
+            "options": "User",
+            "reqd": 1,
+            "unique": 1
+        },
+        {
+            "fieldname": "connection",
+            "fieldtype": "Select",
+            "label": "Connection",
+            "options": "Wi-Fi / Ethernet\nUSB / Serial",
+            "reqd": 1
+        },
+        {
+            "description": "IPv4 address for Wi-Fi / Ethernet (e.g. 192.168.1.5), or COM port for USB / Serial (e.g. COM4).",
+            "fieldname": "terminal_address",
+            "fieldtype": "Data",
+            "label": "Terminal Address",
+            "reqd": 1
+        },
+        {
+            "default": "123",
+            "description": "Fixed 3 digits per AU spec.",
+            "fieldname": "ecr_no",
+            "fieldtype": "Data",
+            "label": "ECR No",
+            "length": 3,
+            "reqd": 1
+        },
+        {
+            "fieldname": "column_break_tid",
+            "fieldtype": "Column Break"
+        },
+        {
+            "description": "Auto-adopted from the terminal's response on the first check2. Leave blank to let the till adopt whatever terminal answers first.",
+            "fieldname": "expected_tid",
+            "fieldtype": "Data",
+            "label": "Expected TID"
+        },
+        {
+            "fieldname": "last_seen_tid",
+            "fieldtype": "Data",
+            "label": "Last Seen TID",
+            "read_only": 1
+        },
+        {
+            "fieldname": "last_seen_on",
+            "fieldtype": "Datetime",
+            "label": "Last Seen On",
+            "read_only": 1
+        },
+        {
+            "fieldname": "column_break_model",
+            "fieldtype": "Column Break"
+        },
+        {
+            "fieldname": "terminal_model",
+            "fieldtype": "Select",
+            "label": "Terminal Model",
+            "options": "A90\nA90 Pro\nDX4000\nDX8000\nLink2500\nMove2500\nMove2500 Hybrid\niUP250\nSelf/4000"
+        },
+        {
+            "default": "0",
+            "description": "AU MI 25-007 restricts bill-number GET lookup to Move2500. Leave off for A90/A90 Pro until AU confirm otherwise.",
+            "fieldname": "supports_bill_get",
+            "fieldtype": "Check",
+            "label": "Supports Bill-No GET"
+        },
+        {
+            "fieldname": "print_reciept_configuration",
+            "fieldtype": "Link",
+            "label": "Print Reciept Configuration",
+            "options": "Print Format"
+        }
+    ],
+    "index_web_pages_for_search": 1,
+    "links": [],
+    "modified": "2026-08-13 00:00:00.000000",
+    "modified_by": "Administrator",
+    "module": "Alhamrani Payment",
+    "name": "Alhamrani Device Map",
+    "naming_rule": "By fieldname",
+    "owner": "Administrator",
+    "permissions": [
+        {
+            "create": 1,
+            "delete": 1,
+            "email": 1,
+            "print": 1,
+            "read": 1,
+            "role": "System Manager",
+            "share": 1,
+            "write": 1
+        }
+    ],
+    "sort_field": "modified",
+    "sort_order": "DESC",
+    "states": []
+}
