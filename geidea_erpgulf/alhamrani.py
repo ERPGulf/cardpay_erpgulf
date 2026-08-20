@@ -158,7 +158,8 @@ def format_amount(amount, settings=None):
     """
     settings = settings or _settings()
     multiplier = cint(settings.amount_multiplier) or 100
-    value = int(round(flt(amount) * multiplier))
+    magnitude = abs(flt(amount))
+    value = int(round(magnitude * multiplier))
 
     if value <= 0:
         frappe.throw(_("Amount must be greater than zero."))
@@ -508,21 +509,17 @@ def resolve(txn, resolution, note=None):
 # --- submit guard ---------------------------------------------------------
 
 def stamp_and_guard(invoice_doc):
-    """Call from posapp.submit_invoice, immediately before invoice_doc.submit().
-
-    Mirrors the existing Geidea block: writes the terminal reference onto
-    payments[].custom_transaction_id, then refuses to submit a card sale with no
-    approved transaction.
-    """
     if not is_device_enabled():
         return
 
+    is_return = bool(invoice_doc.get("is_return"))
     card_total = 0.0
     card_rows = []
     for payment in (invoice_doc.payments or []):
         if payment.mode_of_payment and payment.mode_of_payment.lower() == CARD_MOP:
-            if flt(payment.amount) > 0:
-                card_total += flt(payment.amount)
+            amt = flt(payment.amount)
+            if (is_return and amt < 0) or (not is_return and amt > 0):
+                card_total += abs(amt)
                 card_rows.append(payment)
 
     if card_total <= 0:
@@ -533,7 +530,7 @@ def stamp_and_guard(invoice_doc):
         filters={
             "sales_invoice": invoice_doc.name,
             "status": "Approved",
-            "msg_id": "REF" if invoice_doc.get("is_return") else "PUR",
+            "msg_id": "REF" if is_return else "PUR",
         },
         fields=["name", "amount", "rrn", "auth_code", "tid", "pan", "card_type"],
         order_by="creation desc",

@@ -260,18 +260,16 @@ frappe.provide("alhamrani_payment");
 			return Object.assign({ txn }, decided.message);
 		},
 
-		/** Refund against an earlier transaction. */
-		async refund({ pos_profile, amount, rrn, original_date_ddmmyyyy, masked_pan }) {
+		/** Refund against an earlier transaction. Original RRN/date/PAN are looked
+		 * up server-side in begin() via _original_card_details() -- the browser
+		 * never needs to know them. */
+		async refund({ amount, pos_invoice }) {
 			await ensureConnected();
 			const begun = await frappe.call({
 				method: "geidea_erpgulf.alhamrani.begin",
-				args: { amount, pos_profile, msg_id: "REF" },
+				args: { amount, pos_invoice, msg_id: "REF" },
 			});
 			const { txn, request } = begun.message;
-			request.msg_id = "REF";
-			request.field2 = `${rrn}${original_date_ddmmyyyy}`;
-			request.field3 = masked_pan;
-
 			const raw = await dispatch("transaction", request, txn, config.purchase_timeout_ms);
 			const decided = await frappe.call({
 				method: "geidea_erpgulf.alhamrani.finish",
