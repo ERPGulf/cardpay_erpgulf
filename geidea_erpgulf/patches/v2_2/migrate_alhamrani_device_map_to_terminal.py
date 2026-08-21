@@ -18,13 +18,14 @@ def execute():
         frappe.reload_doctype("Alhamrani Terminal")
         frappe.reload_doctype("POS Profile Alhamrani Terminal")
 
-    old_rows = frappe.get_all(
-        "Alhamrani Device Map",
-        fields=[
-            "name", "user", "device_enabled", "connection", "terminal_address",
-            "ecr_no", "expected_tid", "last_seen_tid", "last_seen_on",
-            "terminal_model", "supports_bill_get", "print_reciept_configuration",
-        ],
+    old_rows = frappe.db.sql(
+        """
+        SELECT name, user, device_enabled, connection, terminal_address,
+               ecr_no, expected_tid, last_seen_tid, last_seen_on,
+               terminal_model, supports_bill_get, print_reciept_configuration
+        FROM `tabAlhamrani Device Map`
+        """,
+        as_dict=True,
     )
 
     created = []
@@ -36,6 +37,9 @@ def execute():
             (row.terminal_address or "").replace(".", "").replace(":", "") or "T",
         )
 
+        if frappe.db.exists("Alhamrani Terminal", {"terminal_address": row.terminal_address, "ecr_no": row.ecr_no}):
+            continue
+
         if frappe.db.exists("Alhamrani Terminal", terminal_id):
             terminal_id = "{0}-{1}".format(terminal_id, row.name[:6])
 
@@ -43,9 +47,9 @@ def execute():
             "doctype": "Alhamrani Terminal",
             "terminal_id": terminal_id,
             "device_enabled": row.device_enabled,
-            "connection": row.connection,
-            "terminal_address": row.terminal_address,
-            "ecr_no": row.ecr_no,
+            "connection": row.connection or "Wi-Fi / Ethernet",
+            "terminal_address": row.terminal_address or "UNSET",
+            "ecr_no": row.ecr_no or "123",
             "expected_tid": row.expected_tid,
             "last_seen_tid": row.last_seen_tid,
             "last_seen_on": row.last_seen_on,
@@ -53,8 +57,15 @@ def execute():
             "supports_bill_get": row.supports_bill_get,
             "print_reciept_configuration": row.print_reciept_configuration,
         })
-        doc.insert(ignore_permissions=True)
-        created.append((row.user, terminal_id))
+        try:
+            doc.insert(ignore_permissions=True)
+            created.append((row.user, terminal_id))
+        except Exception:
+            frappe.log_error(
+                title="Alhamrani terminal migration skipped row",
+                message=frappe.get_traceback(),
+            )
+            continue
 
     frappe.db.commit()
 
