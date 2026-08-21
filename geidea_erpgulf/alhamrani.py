@@ -26,6 +26,13 @@ Two protocol facts drive the rest of this module:
      or failed echo check becomes Unconfirmed, and a human must close it out.
      Retrying an Unconfirmed transaction is how a customer gets charged twice.
 
+TERMINAL RESOLUTION — as of the Alhamrani Terminal migration (v2_2), terminals
+are no longer bound to frappe.session.user. A terminal is selected once when a
+POS Opening Shift is opened (select_terminal) and can be swapped mid-shift
+(switch_terminal) without admin approval. Every device lookup in this file
+therefore requires pos_opening_shift and reads
+POS Opening Shift.custom_alhamrani_terminal, which points at Alhamrani Terminal.
+
 Reference: AU doc "ECR-POS Integration WEB/HTML JAVASCRIPT" v1.2.4, MI 25-007.
 """
 
@@ -98,47 +105,153 @@ def _settings():
     return frappe.get_cached_doc("Alhamrani Payment Settings")
 
 
-def _device(user=None):
-    """Resolve the terminal from the till login, same pattern as GEIdea Device Map."""
-    user = user or frappe.session.user
-    name = frappe.db.get_value(
-        "Alhamrani Device Map", {"user": user, "device_enabled": 1}, "name"
-    )
-    if not name:
-        frappe.throw(
-            _("No enabled Alhamrani Device Map for {0}. Card payments are unavailable at this till.").format(user),
-            title=_("Terminal not configured"),
-        )
-    return frappe.get_cached_doc("Alhamrani Device Map", name)
+def _terminal_from_shift(pos_opening_shift):
+    """Resolve the active terminal for a given POS Opening Shift.
 
-
-@frappe.whitelist()
-def is_device_enabled():
-    """Mirror of posapp.is_device_enabled() for Geidea."""
-    return cint(
-        frappe.db.get_value(
-            "Alhamrani Device Map", {"user": frappe.session.user}, "device_enabled"
-        )
-        or 0
-    )
-
-
-@frappe.whitelist()
-def get_card_provider():
-    """Which terminal this till uses. A user is one or the other, never both.
-
-    Called once on POS open so the Vue layer branches in a single place instead
-    of checking two booleans at every payment step.
+    Replaces the old frappe.session.user lookup entirely. The terminal is
+    chosen once at shift open (or switched mid-shift) and persists for that
+    shift -- see select_terminal() / switch_terminal() below.
     """
-    user = frappe.session.user
+    if not pos_opening_shift:
+        frappe.throw(
+            _("No active POS Opening Shift was supplied. Open (or reopen) the POS to select a terminal."),
+            title=_("No active shift"),
+        )
 
-    if cint(frappe.db.get_value("Alhamrani Device Map", {"user": user}, "device_enabled")):
+    terminal_name = frappe.db.get_value(
+        "POS Opening Shift", pos_opening_shift, "custom_alhamrani_terminal"
+    )
+    if not terminal_name:
+        frappe.throw(
+            _("No payment terminal has been selected for this shift yet. "
+              "Select one from the terminal list before taking a card payment."),
+            title=_("Terminal not selected"),
+        )
+
+    return frappe.get_cached_doc("Alhamrani Terminal", terminal_name)
+
+
+def _device(pos_opening_shift=None):
+    """Resolve the terminal for the current transaction. pos_opening_shift is
+    required now that terminals are no longer bound to frappe.session.user."""
+    device = _terminal_from_shift(pos_opening_shift)
+    if not cint(device.device_enabled):
+        frappe.throw(
+            _("Terminal {0} is disabled. Select a different terminal for this shift.").format(device.name),
+            title=_("Terminal disabled"),
+        )
+    return device
+
+
+@frappe.whitelist()
+def is_device_enabled(pos_opening_shift=None):
+    """Mirror of posapp.is_device_enabled(), resolved via the shift's
+    selected terminal instead of the logged-in user."""
+    terminal_name = frappe.db.get_value(
+        "POS Opening Shift", pos_opening_shift, "custom_alhamrani_terminal"
+    ) if pos_opening_shift else None
+
+    if not terminal_name:
+        return 0
+
+    return cint(frappe.db.get_value("Alhamrani Terminal", terminal_name, "device_enabled") or 0)
+
+
+@frappe.whitelist()
+def get_card_provider(pos_opening_shift=None):
+    """Which terminal type this shift uses. Alhamrani is resolved via the
+    shift's selected terminal. Geidea is unchanged for now (still
+    user-keyed) -- migrate it the same way in a follow-up if desired."""
+    if pos_opening_shift and frappe.db.get_value(
+        "POS Opening Shift", pos_opening_shift, "custom_alhamrani_terminal"
+    ):
         return "alhamrani"
 
+    user = frappe.session.user
     if cint(frappe.db.get_value("GEIdea Device Map", {"user": user}, "custom_device_enabled")):
         return "geidea"
 
     return None
+
+
+# --- terminal selection (POS Profile driven) -------------------------------
+
+@frappe.whitelist()
+def get_allowed_terminals(pos_profile):
+    """Terminals available for a POS Profile, for the cashier's opening/switch
+    dropdown. Only enabled terminals are offered."""
+    if not pos_profile:
+        return []
+
+    profile_doc = frappe.get_cached_doc("POS Profile", pos_profile)
+    rows = profile_doc.get("custom_alhamrani_terminals") or []
+
+    terminal_names = [r.terminal for r in rows if r.terminal]
+    if not terminal_names:
+        return []
+
+    terminals = frappe.get_all(
+        "Alhamrani Terminal",
+        filters={"name": ("in", terminal_names), "device_enabled": 1},
+        fields=["name as terminal_id", "connection", "terminal_address", "terminal_model"],
+    )
+
+    default_terminal = next((r.terminal for r in rows if r.is_default), None)
+    for t in terminals:
+        t["is_default"] = (t["terminal_id"] == default_terminal)
+
+    return terminals
+
+
+@frappe.whitelist()
+def select_terminal(pos_opening_shift, terminal):
+    """Set the active terminal for a shift. Called once at POS opening.
+    Validates the terminal is actually allowed under the shift's POS Profile."""
+    _validate_terminal_allowed(pos_opening_shift, terminal)
+
+    frappe.db.set_value(
+        "POS Opening Shift", pos_opening_shift, "custom_alhamrani_terminal", terminal,
+        update_modified=False,
+    )
+    frappe.db.commit()
+    return {"terminal": terminal}
+
+
+@frappe.whitelist()
+def switch_terminal(pos_opening_shift, terminal):
+    """Switch the active terminal mid-shift, e.g. if the current one goes
+    offline. Same validation as select_terminal -- no admin approval needed,
+    matching the requirement."""
+    _validate_terminal_allowed(pos_opening_shift, terminal)
+
+    frappe.db.set_value(
+        "POS Opening Shift", pos_opening_shift, "custom_alhamrani_terminal", terminal,
+        update_modified=False,
+    )
+    frappe.db.commit()
+
+    frappe.msgprint(
+        _("Switched to terminal {0}.").format(terminal),
+        indicator="green",
+        alert=True,
+    )
+    return {"terminal": terminal}
+
+
+def _validate_terminal_allowed(pos_opening_shift, terminal):
+    pos_profile = frappe.db.get_value("POS Opening Shift", pos_opening_shift, "pos_profile")
+    if not pos_profile:
+        frappe.throw(_("POS Opening Shift {0} not found.").format(pos_opening_shift))
+
+    allowed = get_allowed_terminals(pos_profile)
+    if not any(t["terminal_id"] == terminal for t in allowed):
+        frappe.throw(
+            _("Terminal {0} is not authorized under POS Profile {1}.").format(terminal, pos_profile),
+            title=_("Terminal not allowed"),
+        )
+
+    if not cint(frappe.db.get_value("Alhamrani Terminal", terminal, "device_enabled")):
+        frappe.throw(_("Terminal {0} is disabled.").format(terminal))
 
 
 # --- formatting -----------------------------------------------------------
@@ -193,15 +306,10 @@ def _next_receipt_no():
 # --- session --------------------------------------------------------------
 
 @frappe.whitelist()
-def get_config(pos_profile=None):
-    """Everything the browser needs on POS open.
-
-    pos_profile is accepted for parity with alhamrani_payment.init(pos_profile)
-    on the client. The device is resolved from frappe.session.user regardless,
-    so it is currently unused here.
-    """
+def get_config(pos_profile=None, pos_opening_shift=None):
+    """Everything the browser needs on POS open."""
     settings = _settings()
-    device = _device()
+    device = _device(pos_opening_shift)
     return {
         "hub_url": settings.hub_url,
         "hub_name": settings.hub_name,
@@ -217,37 +325,39 @@ def get_config(pos_profile=None):
             "supports_bill_get": cint(device.supports_bill_get),
             "print_format": device.print_reciept_configuration,
         },
-        "unconfirmed": get_unconfirmed(),
+        "allowed_terminals": get_allowed_terminals(pos_profile),
+        "unconfirmed": get_unconfirmed(pos_opening_shift),
     }
 
 
 @frappe.whitelist()
-def record_tid(tid):
-    """Result of check2 on POS open.
+def record_tid(tid, pos_opening_shift=None):
+    """Result of check2 on POS open. Updates the shift's active terminal
+    record, not a user-keyed one.
 
     On Wi-Fi every till PC can reach every terminal on the subnet, so a stale
     address does not fail — it succeeds against someone else's terminal. This is
     the only guard against charging a customer standing at another till.
     """
-    device = _device()
+    device = _device(pos_opening_shift)
     settings = _settings()
     tid = (tid or "").strip()
 
     if cint(settings.require_tid_match) and device.expected_tid and tid and tid != device.expected_tid:
         frappe.throw(
-            _("Wrong terminal. This till expects TID {0}, but the terminal at {1} reports {2}. "
+            _("Wrong terminal. Terminal {0} expects TID {1}, but the terminal at {2} reports {3}. "
               "Correct the Terminal Address before taking any payment.").format(
-                device.expected_tid, device.terminal_address, tid),
+                device.name, device.expected_tid, device.terminal_address, tid),
             title=_("Terminal mismatch"),
         )
 
     adopted = False
     if tid:
         if not device.expected_tid:
-            frappe.db.set_value("Alhamrani Device Map", device.name, "expected_tid", tid,
+            frappe.db.set_value("Alhamrani Terminal", device.name, "expected_tid", tid,
                                 update_modified=False)
             adopted = True
-        frappe.db.set_value("Alhamrani Device Map", device.name, {
+        frappe.db.set_value("Alhamrani Terminal", device.name, {
             "last_seen_tid": tid,
             "last_seen_on": now_datetime(),
         }, update_modified=False)
@@ -259,7 +369,7 @@ def record_tid(tid):
 # --- transaction lifecycle ------------------------------------------------
 
 @frappe.whitelist()
-def begin(amount, pos_invoice=None, pos_profile=None, msg_id="PUR", attempt=1):
+def begin(amount, pos_invoice=None, pos_profile=None, pos_opening_shift=None, msg_id="PUR", attempt=1):
     """Reserve the transaction BEFORE anything is sent to the terminal.
 
     Written first so that a browser crash between send and response still leaves
@@ -272,7 +382,7 @@ def begin(amount, pos_invoice=None, pos_profile=None, msg_id="PUR", attempt=1):
     invoice when one is given and not already supplied.
     """
     settings = _settings()
-    device = _device()
+    device = _device(pos_opening_shift)
     amount_sent = format_amount(amount, settings) if flt(amount) else ""
 
     invoice_name = pos_invoice
@@ -467,16 +577,19 @@ def mark_unconfirmed(txn, reason=None):
 
 
 @frappe.whitelist()
-def get_unconfirmed():
-    """Anything the cashier must close out before selling again."""
-    device = frappe.db.get_value(
-        "Alhamrani Device Map", {"user": frappe.session.user, "device_enabled": 1}, "name"
-    )
-    if not device:
+def get_unconfirmed(pos_opening_shift=None):
+    """Anything the cashier must close out before selling again, scoped to
+    the shift's currently active terminal."""
+    terminal_name = frappe.db.get_value(
+        "POS Opening Shift", pos_opening_shift, "custom_alhamrani_terminal"
+    ) if pos_opening_shift else None
+
+    if not terminal_name:
         return []
+
     return frappe.get_all(
         "Alhamrani Transaction",
-        filters={"device_map": device, "status": ("in", ["Pending", "Unconfirmed"])},
+        filters={"device_map": terminal_name, "status": ("in", ["Pending", "Unconfirmed"])},
         fields=["name", "status", "bill_no", "amount", "sales_invoice", "attempt",
                 "sent_at", "response_code", "response_meaning"],
         order_by="sent_at asc",
@@ -509,7 +622,9 @@ def resolve(txn, resolution, note=None):
 # --- submit guard ---------------------------------------------------------
 
 def stamp_and_guard(invoice_doc):
-    if not is_device_enabled():
+    pos_opening_shift = invoice_doc.get("posa_pos_opening_shift")
+
+    if not is_device_enabled(pos_opening_shift):
         return
 
     is_return = bool(invoice_doc.get("is_return"))

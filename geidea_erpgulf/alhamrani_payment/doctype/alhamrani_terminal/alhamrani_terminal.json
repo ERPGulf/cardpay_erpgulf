@@ -1,13 +1,13 @@
 {
     "actions": [],
-    "allow_rename": 0,
-    "autoname": "field:user",
-    "creation": "2026-08-13 00:00:00.000000",
+    "allow_rename": 1,
+    "autoname": "field:terminal_id",
+    "creation": "2026-08-20 00:00:00.000000",
     "doctype": "DocType",
     "engine": "InnoDB",
     "field_order": [
         "device_enabled",
-        "user",
+        "terminal_id",
         "connection",
         "terminal_address",
         "ecr_no",
@@ -28,11 +28,11 @@
             "label": "Device Enabled"
         },
         {
-            "fieldname": "user",
-            "fieldtype": "Link",
+            "description": "A short, unique reference for this physical terminal, e.g. COUNTER-1 or STORE-A-TERM-2. Used by cashiers when selecting a terminal.",
+            "fieldname": "terminal_id",
+            "fieldtype": "Data",
             "in_list_view": 1,
-            "label": "User",
-            "options": "User",
+            "label": "Terminal Reference",
             "reqd": 1,
             "unique": 1
         },
@@ -64,7 +64,7 @@
             "fieldtype": "Column Break"
         },
         {
-            "description": "Auto-adopted from the terminal's response on the first check2. Leave blank to let the till adopt whatever terminal answers first.",
+            "description": "Auto-adopted from the terminal's response on the first check2. Leave blank to let the terminal adopt whatever it answers first.",
             "fieldname": "expected_tid",
             "fieldtype": "Data",
             "label": "Expected TID"
@@ -107,10 +107,10 @@
     ],
     "index_web_pages_for_search": 1,
     "links": [],
-    "modified": "2026-08-13 00:00:00.000000",
+    "modified": "2026-08-20 00:00:00.000000",
     "modified_by": "Administrator",
     "module": "Alhamrani Payment",
-    "name": "Alhamrani Device Map",
+    "name": "Alhamrani Terminal",
     "naming_rule": "By fieldname",
     "owner": "Administrator",
     "permissions": [
@@ -123,6 +123,10 @@
             "role": "System Manager",
             "share": 1,
             "write": 1
+        },
+        {
+            "read": 1,
+            "role": "Sales User"
         }
     ],
     "sort_field": "modified",

@@ -162,12 +162,22 @@ frappe.provide("alhamrani_payment");
 
 	Object.assign(alhamrani_payment, {
 		/** Load config for this till and connect. Returns unconfirmed items. */
-		async init(pos_profile = null) {
+		// async init(pos_profile = null) {
+		// 	const r = await frappe.call({
+		// 		method: "geidea_erpgulf.alhamrani.get_config",
+		// 		args: { pos_profile },
+		// 	});
+		// 	config = r.message;
+		// 	await ensureConnected();
+		// 	return config;
+		// },
+		async init(pos_profile = null, pos_opening_shift = null) {
 			const r = await frappe.call({
 				method: "geidea_erpgulf.alhamrani.get_config",
-				args: { pos_profile },
+				args: { pos_profile, pos_opening_shift },
 			});
 			config = r.message;
+			config.pos_opening_shift = pos_opening_shift;
 			await ensureConnected();
 			return config;
 		},
@@ -210,9 +220,14 @@ frappe.provide("alhamrani_payment");
 			});
 
 			// Server enforces the TID match and throws on a wrong terminal.
+			// await frappe.call({
+			// 	method: "geidea_erpgulf.alhamrani.record_tid",
+			// 	args: { tid: res.tid || "" },
+			// });
+			// return res;
 			await frappe.call({
 				method: "geidea_erpgulf.alhamrani.record_tid",
-				args: { tid: res.tid || "" },
+				args: { tid: res.tid || "", pos_opening_shift: config.pos_opening_shift },
 			});
 			return res;
 		},
@@ -224,13 +239,27 @@ frappe.provide("alhamrani_payment");
 		 * In that case the ECR Transaction is already Unconfirmed server-side:
 		 * do NOT retry silently, and do NOT submit the invoice.
 		 */
-		async purchase({ pos_profile, amount, pos_invoice, attempt = 1 }) {
+		async purchase({ pos_profile, amount, pos_invoice, pos_opening_shift, attempt = 1 }) {
 			await ensureConnected();
 
 			const begun = await frappe.call({
 				method: "geidea_erpgulf.alhamrani.begin",
-				args: { amount, pos_invoice, pos_profile, msg_id: "PUR", attempt },
+				args: {
+					amount,
+					pos_invoice,
+					pos_profile,
+					pos_opening_shift: pos_opening_shift || config.pos_opening_shift,
+					msg_id: "PUR",
+					attempt,
+				},
 			});
+		// async purchase({ pos_profile, amount, pos_invoice, attempt = 1 }) {
+		// 	await ensureConnected();
+
+			// const begun = await frappe.call({
+			// 	method: "geidea_erpgulf.alhamrani.begin",
+			// 	args: { amount, pos_invoice, pos_profile, msg_id: "PUR", attempt },
+			// });
 			const { txn, request } = begun.message;
 
 			let raw;
@@ -263,11 +292,22 @@ frappe.provide("alhamrani_payment");
 		/** Refund against an earlier transaction. Original RRN/date/PAN are looked
 		 * up server-side in begin() via _original_card_details() -- the browser
 		 * never needs to know them. */
-		async refund({ amount, pos_invoice }) {
+		// async refund({ amount, pos_invoice }) {
+		// 	await ensureConnected();
+		// 	const begun = await frappe.call({
+		// 		method: "geidea_erpgulf.alhamrani.begin",
+		// 		args: { amount, pos_invoice, msg_id: "REF" },
+		// 	});
+		async refund({ amount, pos_invoice, pos_opening_shift }) {
 			await ensureConnected();
 			const begun = await frappe.call({
 				method: "geidea_erpgulf.alhamrani.begin",
-				args: { amount, pos_invoice, msg_id: "REF" },
+				args: {
+					amount,
+					pos_invoice,
+					pos_opening_shift: pos_opening_shift || config.pos_opening_shift,
+					msg_id: "REF",
+				},
 			});
 			const { txn, request } = begun.message;
 			const raw = await dispatch("transaction", request, txn, config.purchase_timeout_ms);
@@ -306,11 +346,22 @@ frappe.provide("alhamrani_payment");
 		},
 
 		/** End of day totals. */
+		// async reconcile(pos_profile) {
+		// 	await ensureConnected();
+		// 	const begun = await frappe.call({
+		// 		method: "geidea_erpgulf.alhamrani.begin",
+		// 		args: { pos_profile, amount: 0, msg_id: "REC" },
+		// 	});
 		async reconcile(pos_profile) {
 			await ensureConnected();
 			const begun = await frappe.call({
 				method: "geidea_erpgulf.alhamrani.begin",
-				args: { pos_profile, amount: 0, msg_id: "REC" },
+				args: {
+					pos_profile,
+					pos_opening_shift: config.pos_opening_shift,
+					amount: 0,
+					msg_id: "REC",
+				},
 			});
 			const { txn, request } = begun.message;
 			request.msg_id = "REC";
@@ -337,9 +388,16 @@ frappe.provide("alhamrani_payment");
 			);
 		},
 
+		// async unconfirmed() {
+		// 	const r = await frappe.call({
+		// 		method: "geidea_erpgulf.alhamrani.get_unconfirmed",
+		// 	});
+		// 	return r.message || [];
+		// },
 		async unconfirmed() {
 			const r = await frappe.call({
 				method: "geidea_erpgulf.alhamrani.get_unconfirmed",
+				args: { pos_opening_shift: config.pos_opening_shift },
 			});
 			return r.message || [];
 		},
