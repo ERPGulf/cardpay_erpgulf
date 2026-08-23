@@ -6,3 +6,4 @@
 # Patches added in this section will be executed after doctypes are migrated
 #geidea_erpgulf.geidea_erpgulf.patches.v2_2.migrate_alhamrani_device_map_to_terminal
 geidea_erpgulf.patches.v2_2.migrate_alhamrani_device_map_to_terminal
+geidea_erpgulf.patches.v2_3.remove_orphan_marina_field
