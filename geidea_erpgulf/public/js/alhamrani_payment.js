@@ -178,6 +178,23 @@ frappe.provide("alhamrani_payment");
 		// 	return config;
 		// },
 		async init(pos_profile = null, pos_opening_shift = null) {
+			// Fall back to resolving the shift ourselves. The POSAwesome call
+			// site does not always pass it, and without a shift no terminal can
+			// be resolved, so every card payment fails with a null device.
+			if (!pos_opening_shift) {
+				try {
+					const open = await frappe.db.get_list("POS Opening Shift", {
+						filters: { status: "Open", docstatus: 1, user: frappe.session.user },
+						fields: ["name"],
+						order_by: "period_start_date desc",
+						limit: 1,
+					});
+					if (open && open.length) pos_opening_shift = open[0].name;
+				} catch (e) {
+					console.warn("[ecr] could not resolve the open shift", e);
+				}
+			}
+
 			const r = await frappe.call({
 				method: "geidea_erpgulf.alhamrani.get_config",
 				args: { pos_profile, pos_opening_shift },
