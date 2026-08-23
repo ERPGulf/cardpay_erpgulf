@@ -275,7 +275,8 @@ def switch_terminal(pos_opening_shift, terminal):
 def _require_manager():
     """Terminal assignment is a back-office decision at Marina: cashiers must
     not be able to repoint their till at a different card machine."""
-    if not any(frappe.has_role(r) for r in MANAGER_ROLES):
+    roles = set(frappe.get_roles())
+    if not roles.intersection(MANAGER_ROLES):
         frappe.throw(
             _("Only a manager may change the terminal assigned to a shift."),
             title=_("Not permitted"),
@@ -690,7 +691,7 @@ def resolve(txn, resolution, note=None):
     if doc.status not in ("Unconfirmed", "Pending"):
         frappe.throw(_("Transaction {0} is {1} and does not need resolving.").format(txn, doc.status))
 
-    if resolution == "Written Off" and not any(frappe.has_role(r) for r in MANAGER_ROLES):
+    if resolution == "Written Off" and not set(frappe.get_roles()).intersection(MANAGER_ROLES):
         frappe.throw(_("Only an Accounts Manager may write off a payment."))
 
     doc.resolution = resolution
