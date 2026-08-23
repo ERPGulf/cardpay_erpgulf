@@ -128,7 +128,7 @@ def _terminal_from_shift(pos_opening_shift):
             title=_("Terminal not selected"),
         )
 
-    return frappe.get_cached_doc("Alhamrani Terminal", terminal_name)
+    return frappe.get_doc("Alhamrani Terminal", terminal_name)
 
 
 def _device(pos_opening_shift=None):
@@ -157,15 +157,32 @@ def is_device_enabled(pos_opening_shift=None):
     return cint(frappe.db.get_value("Alhamrani Terminal", terminal_name, "device_enabled") or 0)
 
 
+def _profile_uses_alhamrani(pos_profile):
+    """True when this POS Profile is configured for Alhamrani at all.
+
+    Deliberately independent of whether a terminal is currently selected.
+    Otherwise "no terminal chosen" silently disables the submit guard, and not
+    choosing a terminal becomes a way to bypass it.
+    """
+    if not pos_profile:
+        return False
+    profile = frappe.get_cached_doc("POS Profile", pos_profile)
+    return bool(profile.get("custom_alhamrani_terminals"))
+
+
 @frappe.whitelist()
-def get_card_provider(pos_opening_shift=None):
+def get_card_provider(pos_opening_shift=None, pos_profile=None):
     """Which terminal type this shift uses. Alhamrani is resolved via the
     shift's selected terminal. Geidea is unchanged for now (still
     user-keyed) -- migrate it the same way in a follow-up if desired."""
-    if pos_opening_shift and frappe.db.get_value(
-        "POS Opening Shift", pos_opening_shift, "custom_alhamrani_terminal"
-    ):
-        return "alhamrani"
+    if pos_opening_shift:
+        shift_profile = pos_profile or frappe.db.get_value(
+            "POS Opening Shift", pos_opening_shift, "pos_profile"
+        )
+        # Profile-based, not selection-based: a till that uses Alhamrani still
+        # uses it before a terminal has been picked.
+        if _profile_uses_alhamrani(shift_profile):
+            return "alhamrani"
 
     user = frappe.session.user
     if cint(frappe.db.get_value("GEIdea Device Map", {"user": user}, "custom_device_enabled")):
@@ -205,8 +222,13 @@ def get_allowed_terminals(pos_profile):
 
 @frappe.whitelist()
 def select_terminal(pos_opening_shift, terminal):
-    """Set the active terminal for a shift. Called once at POS opening.
-    Validates the terminal is actually allowed under the shift's POS Profile."""
+    """Set the active terminal for a shift. Manager-only.
+
+    Normally unnecessary: assign_default_terminal() sets it automatically when
+    the shift opens. This exists for the case where a POS Profile lists several
+    terminals and someone with authority needs to override the default.
+    """
+    _require_manager()
     _validate_terminal_allowed(pos_opening_shift, terminal)
 
     frappe.db.set_value(
@@ -219,10 +241,22 @@ def select_terminal(pos_opening_shift, terminal):
 
 @frappe.whitelist()
 def switch_terminal(pos_opening_shift, terminal):
-    """Switch the active terminal mid-shift, e.g. if the current one goes
-    offline. Same validation as select_terminal -- no admin approval needed,
-    matching the requirement."""
+    """Switch the active terminal mid-shift, e.g. if the current one dies.
+
+    Manager-only. A cashier repointing their own till at another card machine
+    is the scenario the TID guard exists to catch, so it should not be reachable
+    from the POS in the first place.
+    """
+    _require_manager()
     _validate_terminal_allowed(pos_opening_shift, terminal)
+
+    # An unresolved payment belongs to the terminal that took it. Switching
+    # away before resolving it is how a customer gets charged twice.
+    if get_unconfirmed(pos_opening_shift):
+        frappe.throw(
+            _("Resolve the outstanding card payment before switching terminals."),
+            title=_("Unresolved payment"),
+        )
 
     frappe.db.set_value(
         "POS Opening Shift", pos_opening_shift, "custom_alhamrani_terminal", terminal,
@@ -236,6 +270,34 @@ def switch_terminal(pos_opening_shift, terminal):
         alert=True,
     )
     return {"terminal": terminal}
+
+
+def _require_manager():
+    """Terminal assignment is a back-office decision at Marina: cashiers must
+    not be able to repoint their till at a different card machine."""
+    if not any(frappe.has_role(r) for r in MANAGER_ROLES):
+        frappe.throw(
+            _("Only a manager may change the terminal assigned to a shift."),
+            title=_("Not permitted"),
+        )
+
+
+def assign_default_terminal(doc, method=None):
+    """Auto-assign the POS Profile's default terminal when a shift opens.
+
+    Cashiers do not choose terminals, so without this nothing ever sets
+    POS Opening Shift.custom_alhamrani_terminal and every card payment fails
+    with "Terminal not selected". Hooked on POS Opening Shift after_insert.
+    """
+    if doc.get("custom_alhamrani_terminal"):
+        return
+
+    allowed = get_allowed_terminals(doc.get("pos_profile"))
+    if not allowed:
+        return   # this POS Profile does not use Alhamrani
+
+    chosen = next((t for t in allowed if t.get("is_default")), None) or allowed[0]
+    doc.db_set("custom_alhamrani_terminal", chosen["terminal_id"], update_modified=False)
 
 
 def _validate_terminal_allowed(pos_opening_shift, terminal):
@@ -309,7 +371,19 @@ def _next_receipt_no():
 def get_config(pos_profile=None, pos_opening_shift=None):
     """Everything the browser needs on POS open."""
     settings = _settings()
-    device = _device(pos_opening_shift)
+
+    # Must not throw when no terminal is selected yet: this is the only endpoint
+    # that hands the cashier the list to select from, so throwing here makes the
+    # selection impossible.
+    device = None
+    try:
+        device = _device(pos_opening_shift)
+    except frappe.ValidationError:
+        frappe.clear_last_message()
+
+    if not pos_profile and pos_opening_shift:
+        pos_profile = frappe.db.get_value("POS Opening Shift", pos_opening_shift, "pos_profile")
+
     return {
         "hub_url": settings.hub_url,
         "hub_name": settings.hub_name,
@@ -324,7 +398,8 @@ def get_config(pos_profile=None, pos_opening_shift=None):
             "expected_tid": device.expected_tid,
             "supports_bill_get": cint(device.supports_bill_get),
             "print_format": device.print_reciept_configuration,
-        },
+        } if device else None,
+        "terminal_selected": bool(device),
         "allowed_terminals": get_allowed_terminals(pos_profile),
         "unconfirmed": get_unconfirmed(pos_opening_shift),
     }
@@ -362,6 +437,7 @@ def record_tid(tid, pos_opening_shift=None):
             "last_seen_on": now_datetime(),
         }, update_modified=False)
         frappe.db.commit()
+        frappe.clear_document_cache("Alhamrani Terminal", device.name)
 
     return {"tid": tid, "adopted": adopted}
 
@@ -397,6 +473,7 @@ def begin(amount, pos_invoice=None, pos_profile=None, pos_opening_shift=None, ms
         "sales_invoice": invoice_name,
         "msg_id": msg_id,
         "attempt": cint(attempt) or 1,
+        "pos_opening_shift": pos_opening_shift,
         "bill_no": _next_bill_no(attempt),
         "ecr_no_sent": device.ecr_no,
         "ecr_receipt_no_sent": _next_receipt_no(),
@@ -500,6 +577,13 @@ def finish(txn, response):
     doc.card_expiry_date = response.get("card_expiry_date")
     doc.amount_echoed = response.get("amount")
 
+    # v1.2.4 "Receipt details on ECR Response". Store raw: the live key names
+    # differ from doc s9.2 (ECRIDData not ECR_IDData, MerchantName_ARA not
+    # MERCHANTNAME_ARA), so do not normalise against the PDF.
+    receipt = response.get("receiptData")
+    if receipt:
+        doc.receipt_data = receipt if isinstance(receipt, str) else json.dumps(receipt, indent=2)
+
     problems = _validate_echo(doc, response, settings)
 
     if problems:
@@ -578,18 +662,18 @@ def mark_unconfirmed(txn, reason=None):
 
 @frappe.whitelist()
 def get_unconfirmed(pos_opening_shift=None):
-    """Anything the cashier must close out before selling again, scoped to
-    the shift's currently active terminal."""
-    terminal_name = frappe.db.get_value(
-        "POS Opening Shift", pos_opening_shift, "custom_alhamrani_terminal"
-    ) if pos_opening_shift else None
-
-    if not terminal_name:
+    """Anything the cashier must close out before selling again, scoped to the
+    shift rather than to whichever terminal is active right now."""
+    # Scoped to the SHIFT, not the currently selected terminal. A cashier who
+    # hits a timeout and then switches terminals — exactly what someone does
+    # when a terminal misbehaves — must still see the unresolved payment.
+    if not pos_opening_shift:
         return []
 
     return frappe.get_all(
         "Alhamrani Transaction",
-        filters={"device_map": terminal_name, "status": ("in", ["Pending", "Unconfirmed"])},
+        filters={"pos_opening_shift": pos_opening_shift,
+                 "status": ("in", ["Pending", "Unconfirmed"])},
         fields=["name", "status", "bill_no", "amount", "sales_invoice", "attempt",
                 "sent_at", "response_code", "response_meaning"],
         order_by="sent_at asc",
@@ -624,7 +708,10 @@ def resolve(txn, resolution, note=None):
 def stamp_and_guard(invoice_doc):
     pos_opening_shift = invoice_doc.get("posa_pos_opening_shift")
 
-    if not is_device_enabled(pos_opening_shift):
+    # Profile-based, not selection-based. is_device_enabled() returns 0 when no
+    # terminal is selected, which would mean "no terminal chosen" silently
+    # disables the guard and lets an unapproved card sale submit.
+    if not _profile_uses_alhamrani(invoice_doc.get("pos_profile")):
         return
 
     is_return = bool(invoice_doc.get("is_return"))

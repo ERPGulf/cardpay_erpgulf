@@ -101,7 +101,13 @@ frappe.provide("alhamrani_payment");
 		if (conn && conn.state === $.signalR.connectionState.connected) return;
 
 		await loadLib();
-		if (!config) throw new Error(__("Call alhamrani_payment.init() first."));
+		if (!config) {
+			// A missed setup hook should not break a payment. init() with no
+			// arguments resolves the shift server-side where it can.
+			throw new Error(
+				__("The card terminal is not set up for this session. Reopen the POS.")
+			);
+		}
 
 		conn = $.hubConnection(config.hub_url, { useDefaultPath: false });
 		hub = conn.createHubProxy(config.hub_name);
@@ -152,7 +158,7 @@ frappe.provide("alhamrani_payment");
 
 			pending.set(key, { resolve, reject, timer, txn });
 
-			hub.invoke("send", keyword, JSON.stringify(request)).fail((e) => {
+			hub.invoke("Send", keyword, JSON.stringify(request)).fail((e) => {
 				clearTimeout(timer);
 				pending.delete(key);
 				reject(new Error(__("Could not send to the payment service: {0}", [(e && e.message) || e])));
@@ -194,6 +200,11 @@ frappe.provide("alhamrani_payment");
 		async check_device() {
 			await ensureConnected();
 			const t = config.device;
+			if (!t) {
+				throw new Error(
+					__("No terminal is selected for this shift. Choose one before taking a card payment.")
+				);
+			}
 			const request = {
 				msg_id: "PUR",
 				ecr_no: t.ecr_no,
@@ -212,7 +223,7 @@ frappe.provide("alhamrani_payment");
 				}, config.query_timeout_ms);
 
 				checks.push({ resolve, reject, timer });
-				hub.invoke("send", "check2", JSON.stringify(request)).fail((e) => {
+				hub.invoke("Send", "check2", JSON.stringify(request)).fail((e) => {
 					clearTimeout(timer);
 					checks.pop();
 					reject(new Error(__("Could not reach the payment service.")));
@@ -253,8 +264,8 @@ frappe.provide("alhamrani_payment");
 					attempt,
 				},
 			});
-		// async purchase({ pos_profile, amount, pos_invoice, attempt = 1 }) {
-		// 	await ensureConnected();
+			// async purchase({ pos_profile, amount, pos_invoice, attempt = 1 }) {
+			// 	await ensureConnected();
 
 			// const begun = await frappe.call({
 			// 	method: "geidea_erpgulf.alhamrani.begin",
@@ -328,6 +339,9 @@ frappe.provide("alhamrani_payment");
 		async query_bill(bill_no) {
 			await ensureConnected();
 			const t = config.device;
+			if (!t) {
+				throw new Error(__("No terminal is selected for this shift."));
+			}
 			if (!t.supports_bill_get) {
 				throw new Error(
 					__("This terminal model does not support lookup by bill number. Check the outcome on the terminal itself.")
@@ -373,8 +387,9 @@ frappe.provide("alhamrani_payment");
 		async cancel() {
 			if (!alhamrani_payment.is_ready()) return;
 			const t = config.device;
+			if (!t) return;   // nothing selected, nothing to cancel
 			return hub.invoke(
-				"send",
+				"Send",
 				"cancel",
 				JSON.stringify({
 					msg_id: "",

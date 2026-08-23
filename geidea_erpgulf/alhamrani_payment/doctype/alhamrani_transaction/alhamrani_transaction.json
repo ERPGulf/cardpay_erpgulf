@@ -1,326 +1,339 @@
 {
-    "actions": [],
-    "allow_rename": 0,
-    "autoname": "naming_series:",
-    "creation": "2026-08-13 00:00:00.000000",
-    "doctype": "DocType",
-    "engine": "InnoDB",
-    "field_order": [
-        "naming_series",
-        "status",
-        "device_map",
-        "sales_invoice",
-        "pos_profile",
-        "column_break_ids",
-        "bill_no",
-        "attempt",
-        "msg_id",
-        "ecr_no_sent",
-        "ecr_receipt_no_sent",
-        "section_break_amount",
-        "amount",
-        "amount_sent",
-        "amount_echoed",
-        "column_break_response",
-        "response_code",
-        "response_meaning",
-        "auth_code",
-        "rrn",
-        "tid",
-        "section_break_card",
-        "card_type",
-        "pan",
-        "card_expiry_date",
-        "column_break_timing",
-        "sent_at",
-        "responded_at",
-        "response_age_seconds",
-        "section_break_resolution",
-        "resolution",
-        "resolution_note",
-        "column_break_resolved",
-        "resolved_by",
-        "resolved_on",
-        "section_break_raw",
-        "request_json",
-        "response_json"
-    ],
-    "fields": [
-        {
-            "fieldname": "naming_series",
-            "fieldtype": "Select",
-            "label": "Series",
-            "options": "AUP-.YYYY.-"
-        },
-        {
-            "fieldname": "status",
-            "fieldtype": "Select",
-            "in_list_view": 1,
-            "in_standard_filter": 1,
-            "label": "Status",
-            "options": "Pending\nApproved\nDeclined\nUnconfirmed\nResolved\nAbandoned",
-            "reqd": 1
-        },
-        {
-            "fieldname": "device_map",
-            "fieldtype": "Link",
-            "in_list_view": 1,
-            "label": "Device Map",
-            "options": "Alhamrani Terminal",
-            "reqd": 1
-        },
-        {
-            "fieldname": "sales_invoice",
-            "fieldtype": "Link",
-            "in_list_view": 1,
-            "label": "Sales Invoice",
-            "options": "Sales Invoice"
-        },
-        {
-            "fieldname": "pos_profile",
-            "fieldtype": "Link",
-            "label": "POS Profile",
-            "options": "POS Profile",
-            "read_only": 1
-        },
-        {
-            "fieldname": "column_break_ids",
-            "fieldtype": "Column Break"
-        },
-        {
-            "description": "Numeric, unique, max 19 chars (AU spec N 19). Never reused across attempts \u2014 a reused bill_no makes the terminal return only the first transaction.",
-            "fieldname": "bill_no",
-            "fieldtype": "Data",
-            "label": "Bill No",
-            "length": 19,
-            "read_only": 1,
-            "unique": 1
-        },
-        {
-            "default": "1",
-            "fieldname": "attempt",
-            "fieldtype": "Int",
-            "label": "Attempt",
-            "read_only": 1
-        },
-        {
-            "fieldname": "msg_id",
-            "fieldtype": "Select",
-            "label": "Message ID",
-            "options": "PUR\nREF\nREC\nGET",
-            "reqd": 1
-        },
-        {
-            "fieldname": "ecr_no_sent",
-            "fieldtype": "Data",
-            "label": "ECR No Sent",
-            "read_only": 1
-        },
-        {
-            "fieldname": "ecr_receipt_no_sent",
-            "fieldtype": "Data",
-            "label": "ECR Receipt No Sent",
-            "length": 10,
-            "read_only": 1
-        },
-        {
-            "fieldname": "section_break_amount",
-            "fieldtype": "Section Break",
-            "label": "Amount"
-        },
-        {
-            "fieldname": "amount",
-            "fieldtype": "Currency",
-            "in_list_view": 1,
-            "label": "Amount",
-            "read_only": 1
-        },
-        {
-            "description": "The exact digit string sent to the terminal, after the configured Amount Multiplier and optional zero-padding.",
-            "fieldname": "amount_sent",
-            "fieldtype": "Data",
-            "label": "Amount Sent",
-            "read_only": 1
-        },
-        {
-            "fieldname": "amount_echoed",
-            "fieldtype": "Data",
-            "label": "Amount Echoed",
-            "read_only": 1
-        },
-        {
-            "fieldname": "column_break_response",
-            "fieldtype": "Column Break"
-        },
-        {
-            "fieldname": "response_code",
-            "fieldtype": "Data",
-            "label": "Response Code",
-            "read_only": 1
-        },
-        {
-            "fieldname": "response_meaning",
-            "fieldtype": "Data",
-            "label": "Response Meaning",
-            "read_only": 1
-        },
-        {
-            "fieldname": "auth_code",
-            "fieldtype": "Data",
-            "label": "Auth Code",
-            "read_only": 1
-        },
-        {
-            "fieldname": "rrn",
-            "fieldtype": "Data",
-            "label": "RRN",
-            "read_only": 1
-        },
-        {
-            "fieldname": "tid",
-            "fieldtype": "Data",
-            "label": "TID",
-            "read_only": 1
-        },
-        {
-            "fieldname": "section_break_card",
-            "fieldtype": "Section Break",
-            "label": "Card"
-        },
-        {
-            "fieldname": "card_type",
-            "fieldtype": "Data",
-            "label": "Card Type",
-            "read_only": 1
-        },
-        {
-            "fieldname": "pan",
-            "fieldtype": "Data",
-            "label": "Masked PAN",
-            "read_only": 1
-        },
-        {
-            "fieldname": "card_expiry_date",
-            "fieldtype": "Data",
-            "label": "Card Expiry Date",
-            "read_only": 1
-        },
-        {
-            "fieldname": "column_break_timing",
-            "fieldtype": "Column Break"
-        },
-        {
-            "fieldname": "sent_at",
-            "fieldtype": "Datetime",
-            "label": "Sent At",
-            "read_only": 1
-        },
-        {
-            "fieldname": "responded_at",
-            "fieldtype": "Datetime",
-            "label": "Responded At",
-            "read_only": 1
-        },
-        {
-            "fieldname": "response_age_seconds",
-            "fieldtype": "Int",
-            "label": "Response Age (seconds)",
-            "read_only": 1
-        },
-        {
-            "fieldname": "section_break_resolution",
-            "fieldtype": "Section Break",
-            "label": "Resolution"
-        },
-        {
-            "fieldname": "resolution",
-            "fieldtype": "Select",
-            "label": "Resolution",
-            "options": "\nConfirmed Approved at Terminal\nConfirmed Not Charged\nRefunded to Customer\nWritten Off"
-        },
-        {
-            "fieldname": "resolution_note",
-            "fieldtype": "Small Text",
-            "label": "Resolution Note"
-        },
-        {
-            "fieldname": "column_break_resolved",
-            "fieldtype": "Column Break"
-        },
-        {
-            "fieldname": "resolved_by",
-            "fieldtype": "Link",
-            "label": "Resolved By",
-            "options": "User",
-            "read_only": 1
-        },
-        {
-            "fieldname": "resolved_on",
-            "fieldtype": "Datetime",
-            "label": "Resolved On",
-            "read_only": 1
-        },
-        {
-            "collapsible": 1,
-            "fieldname": "section_break_raw",
-            "fieldtype": "Section Break",
-            "label": "Raw Payloads"
-        },
-        {
-            "fieldname": "request_json",
-            "fieldtype": "Code",
-            "label": "Request JSON",
-            "options": "JSON",
-            "read_only": 1
-        },
-        {
-            "fieldname": "response_json",
-            "fieldtype": "Code",
-            "label": "Response JSON",
-            "options": "JSON",
-            "read_only": 1
-        }
-    ],
-    "index_web_pages_for_search": 1,
-    "links": [],
-    "modified": "2026-08-13 00:00:00.000000",
-    "modified_by": "Administrator",
-    "module": "Alhamrani Payment",
-    "name": "Alhamrani Transaction",
-    "naming_rule": "By \"Naming Series\" field",
-    "owner": "Administrator",
-    "permissions": [
-        {
-            "create": 1,
-            "delete": 1,
-            "email": 1,
-            "print": 1,
-            "read": 1,
-            "role": "System Manager",
-            "share": 1,
-            "write": 1
-        },
-        {
-            "create": 1,
-            "delete": 1,
-            "email": 1,
-            "print": 1,
-            "read": 1,
-            "role": "Accounts Manager",
-            "share": 1,
-            "write": 1
-        },
-        {
-            "create": 1,
-            "email": 1,
-            "print": 1,
-            "read": 1,
-            "role": "Accounts User",
-            "share": 1,
-            "write": 1
-        }
-    ],
-    "sort_field": "modified",
-    "sort_order": "DESC",
-    "states": []
+ "actions": [],
+ "autoname": "naming_series:",
+ "creation": "2026-08-13 00:00:00",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "status",
+  "device_map",
+  "sales_invoice",
+  "pos_profile",
+  "pos_opening_shift",
+  "receipt_data",
+  "column_break_ids",
+  "bill_no",
+  "attempt",
+  "msg_id",
+  "ecr_no_sent",
+  "ecr_receipt_no_sent",
+  "section_break_amount",
+  "amount",
+  "amount_sent",
+  "amount_echoed",
+  "column_break_response",
+  "response_code",
+  "response_meaning",
+  "auth_code",
+  "rrn",
+  "tid",
+  "section_break_card",
+  "card_type",
+  "pan",
+  "card_expiry_date",
+  "column_break_timing",
+  "sent_at",
+  "responded_at",
+  "response_age_seconds",
+  "section_break_resolution",
+  "resolution",
+  "resolution_note",
+  "column_break_resolved",
+  "resolved_by",
+  "resolved_on",
+  "section_break_raw",
+  "request_json",
+  "response_json"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "AUP-.YYYY.-"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Pending\nApproved\nDeclined\nUnconfirmed\nResolved\nAbandoned",
+   "reqd": 1
+  },
+  {
+   "fieldname": "device_map",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Device Map",
+   "options": "Alhamrani Terminal",
+   "reqd": 1
+  },
+  {
+   "fieldname": "sales_invoice",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Sales Invoice",
+   "options": "Sales Invoice"
+  },
+  {
+   "fieldname": "pos_profile",
+   "fieldtype": "Link",
+   "label": "POS Profile",
+   "options": "POS Profile",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_ids",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Numeric, unique, max 19 chars (AU spec N 19). Never reused across attempts \u2014 a reused bill_no makes the terminal return only the first transaction.",
+   "fieldname": "bill_no",
+   "fieldtype": "Data",
+   "label": "Bill No",
+   "length": 19,
+   "read_only": 1,
+   "unique": 1
+  },
+  {
+   "default": "1",
+   "fieldname": "attempt",
+   "fieldtype": "Int",
+   "label": "Attempt",
+   "read_only": 1
+  },
+  {
+   "fieldname": "msg_id",
+   "fieldtype": "Select",
+   "label": "Message ID",
+   "options": "PUR\nREF\nREC\nGET",
+   "reqd": 1
+  },
+  {
+   "fieldname": "ecr_no_sent",
+   "fieldtype": "Data",
+   "label": "ECR No Sent",
+   "read_only": 1
+  },
+  {
+   "fieldname": "ecr_receipt_no_sent",
+   "fieldtype": "Data",
+   "label": "ECR Receipt No Sent",
+   "length": 10,
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_amount",
+   "fieldtype": "Section Break",
+   "label": "Amount"
+  },
+  {
+   "fieldname": "amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Amount",
+   "read_only": 1
+  },
+  {
+   "description": "The exact digit string sent to the terminal, after the configured Amount Multiplier and optional zero-padding.",
+   "fieldname": "amount_sent",
+   "fieldtype": "Data",
+   "label": "Amount Sent",
+   "read_only": 1
+  },
+  {
+   "fieldname": "amount_echoed",
+   "fieldtype": "Data",
+   "label": "Amount Echoed",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_response",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "response_code",
+   "fieldtype": "Data",
+   "label": "Response Code",
+   "read_only": 1
+  },
+  {
+   "fieldname": "response_meaning",
+   "fieldtype": "Data",
+   "label": "Response Meaning",
+   "read_only": 1
+  },
+  {
+   "fieldname": "auth_code",
+   "fieldtype": "Data",
+   "label": "Auth Code",
+   "read_only": 1
+  },
+  {
+   "fieldname": "rrn",
+   "fieldtype": "Data",
+   "label": "RRN",
+   "read_only": 1
+  },
+  {
+   "fieldname": "tid",
+   "fieldtype": "Data",
+   "label": "TID",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_card",
+   "fieldtype": "Section Break",
+   "label": "Card"
+  },
+  {
+   "fieldname": "card_type",
+   "fieldtype": "Data",
+   "label": "Card Type",
+   "read_only": 1
+  },
+  {
+   "fieldname": "pan",
+   "fieldtype": "Data",
+   "label": "Masked PAN",
+   "read_only": 1
+  },
+  {
+   "fieldname": "card_expiry_date",
+   "fieldtype": "Data",
+   "label": "Card Expiry Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_timing",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "sent_at",
+   "fieldtype": "Datetime",
+   "label": "Sent At",
+   "read_only": 1
+  },
+  {
+   "fieldname": "responded_at",
+   "fieldtype": "Datetime",
+   "label": "Responded At",
+   "read_only": 1
+  },
+  {
+   "fieldname": "response_age_seconds",
+   "fieldtype": "Int",
+   "label": "Response Age (seconds)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_resolution",
+   "fieldtype": "Section Break",
+   "label": "Resolution"
+  },
+  {
+   "fieldname": "resolution",
+   "fieldtype": "Select",
+   "label": "Resolution",
+   "options": "\nConfirmed Approved at Terminal\nConfirmed Not Charged\nRefunded to Customer\nWritten Off"
+  },
+  {
+   "fieldname": "resolution_note",
+   "fieldtype": "Small Text",
+   "label": "Resolution Note"
+  },
+  {
+   "fieldname": "column_break_resolved",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "resolved_by",
+   "fieldtype": "Link",
+   "label": "Resolved By",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "resolved_on",
+   "fieldtype": "Datetime",
+   "label": "Resolved On",
+   "read_only": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_break_raw",
+   "fieldtype": "Section Break",
+   "label": "Raw Payloads"
+  },
+  {
+   "fieldname": "request_json",
+   "fieldtype": "Code",
+   "label": "Request JSON",
+   "options": "JSON",
+   "read_only": 1
+  },
+  {
+   "fieldname": "response_json",
+   "fieldtype": "Code",
+   "label": "Response JSON",
+   "options": "JSON",
+   "read_only": 1
+  },
+  {
+   "fieldname": "pos_opening_shift",
+   "fieldtype": "Link",
+   "label": "POS Opening Shift",
+   "options": "POS Opening Shift"
+  },
+  {
+   "fieldname": "receipt_data",
+   "fieldtype": "JSON",
+   "label": "Receipt Data"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-08-23 13:42:07.508757",
+ "modified_by": "Administrator",
+ "module": "Alhamrani Payment",
+ "name": "Alhamrani Transaction",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Accounts Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Accounts User",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
 }
