@@ -500,6 +500,7 @@ def begin(amount, pos_invoice=None, pos_profile=None, pos_opening_shift=None, ms
         rrn, date_ddmmyyyy, pan = _original_card_details(invoice_name)
         request["field2"] = "{0}{1}".format(rrn, date_ddmmyyyy)
         request["field3"] = pan or ""
+        # request["field3"] = ""
 
     doc.request_json = json.dumps(request, indent=2)
     doc.insert(ignore_permissions=True)
