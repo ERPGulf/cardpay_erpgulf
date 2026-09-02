@@ -320,30 +320,71 @@ frappe.provide("alhamrani_payment");
 		/** Refund against an earlier transaction. Original RRN/date/PAN are looked
 		 * up server-side in begin() via _original_card_details() -- the browser
 		 * never needs to know them. */
-		// async refund({ amount, pos_invoice }) {
+
+		// async refund({ amount, pos_invoice, pos_opening_shift }) {
 		// 	await ensureConnected();
 		// 	const begun = await frappe.call({
 		// 		method: "geidea_erpgulf.alhamrani.begin",
-		// 		args: { amount, pos_invoice, msg_id: "REF" },
+		// 		args: {
+		// 			amount,
+		// 			pos_invoice,
+		// 			pos_opening_shift: pos_opening_shift || config.pos_opening_shift,
+		// 			msg_id: "REF",
+		// 		},
 		// 	});
+		// 	const { txn, request } = begun.message;
+		// 	const raw = await dispatch("transaction", request, txn, config.purchase_timeout_ms);
+		// 	const decided = await frappe.call({
+		// 		method: "geidea_erpgulf.alhamrani.finish",
+		// 		args: { txn, response: JSON.stringify(raw) },
+		// 	});
+		// 	return Object.assign({ txn }, decided.message);
+		// },
 		async refund({ amount, pos_invoice, pos_opening_shift }) {
-			await ensureConnected();
-			const begun = await frappe.call({
-				method: "geidea_erpgulf.alhamrani.begin",
-				args: {
-					amount,
-					pos_invoice,
-					pos_opening_shift: pos_opening_shift || config.pos_opening_shift,
-					msg_id: "REF",
-				},
+		await ensureConnected();
+		const begun = await frappe.call({
+			method: "geidea_erpgulf.alhamrani.begin",
+			args: {
+			amount,
+			pos_invoice,
+			pos_opening_shift: pos_opening_shift || config.pos_opening_shift,
+			msg_id: "REF",
+			},
+		});
+		const { txn, request } = begun.message;
+
+		let raw;
+		try {
+			raw = await dispatch("transaction", request, txn, config.purchase_timeout_ms);
+		} catch (err) {
+			if (err.indeterminate) {
+			// Same as purchase(): a failed/timed-out refund leaves the physical
+			// terminal waiting for a response that will never come. Without this
+			// cancel, the terminal rejects every subsequent PUR/REF with
+			// "ALREADY IN TXN" and even stops answering check2, since from its
+			// own state machine it's still mid-transaction. Best effort: tell it
+			// to abandon the pending refund, then park the record as Unconfirmed
+			// so a human resolves it (a refund left ambiguous must never be
+			// silently retried -- that's how a customer gets refunded twice).
+			try {
+				await alhamrani_payment.cancel();
+			} catch (e) {
+				// Terminal may already be idle -- nothing to cancel.
+			}
+			await frappe.call({
+				method: "geidea_erpgulf.alhamrani.mark_unconfirmed",
+				args: { txn, reason: err.message },
 			});
-			const { txn, request } = begun.message;
-			const raw = await dispatch("transaction", request, txn, config.purchase_timeout_ms);
-			const decided = await frappe.call({
-				method: "geidea_erpgulf.alhamrani.finish",
-				args: { txn, response: JSON.stringify(raw) },
-			});
-			return Object.assign({ txn }, decided.message);
+			err.txn = txn;
+			}
+			throw err;
+		}
+
+		const decided = await frappe.call({
+			method: "geidea_erpgulf.alhamrani.finish",
+			args: { txn, response: JSON.stringify(raw) },
+		});
+		return Object.assign({ txn }, decided.message);
 		},
 
 		/**
