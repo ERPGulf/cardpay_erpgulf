@@ -499,9 +499,16 @@ def begin(amount, pos_invoice=None, pos_profile=None, pos_opening_shift=None, ms
     if msg_id == "REF":
         rrn, date_ddmmyyyy, pan = _original_card_details(invoice_name)
         request["field2"] = "{0}{1}".format(rrn, date_ddmmyyyy)
-        request["field3"] = pan or ""
-        # request["field3"] = ""
-
+        # request["field3"] = pan or ""
+        request["field3"] = ""
+    frappe.log_error(
+        title="Alhamrani REF request payload",
+        message=(
+            f"invoice={invoice_name} bill_no={doc.bill_no} "
+            f"field2={request['field2']!r} field3={request['field3']!r} "
+            f"pan_on_file={pan!r} rrn={rrn!r} date={date_ddmmyyyy!r}"
+        ),
+    )
     doc.request_json = json.dumps(request, indent=2)
     doc.insert(ignore_permissions=True)
     frappe.db.commit()
