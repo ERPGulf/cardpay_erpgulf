@@ -167,6 +167,55 @@ frappe.provide("alhamrani_payment");
 	}
 
 	Object.assign(alhamrani_payment, {
+		/**
+		 * Force-recover from a hung or disconnected session without restarting
+		 * the Windows service. Cancels any in-flight terminal transaction (best
+		 * effort), tears down the existing SignalR connection, and negotiates a
+		 * fresh one. Any pending dispatch() calls are rejected as indeterminate
+		 * so callers treat them the same way a real disconnect would be treated
+		 * (never silently retried).
+		 */
+		// reset_session() {
+		// 	console.log("reset_session");
+		// },
+		async reset_session() {
+			// 1. Best-effort cancel on the terminal -- it may be mid-transaction
+			// and unaware the browser side is giving up.
+			try {
+			if (alhamrani_payment.is_ready()) {
+				await alhamrani_payment.cancel();
+			}
+			} catch (e) {
+			// Terminal may already be unreachable -- proceed with reset anyway.
+			console.warn("[ecr] cancel during reset failed (continuing):", e);
+			}
+
+			// 2. Tear down the current connection. This fires conn.disconnected(),
+			// which already rejects every pending() and checks() waiter with
+			// indeterminate=true -- so any in-flight purchase()/refund() awaits
+			// resolve safely rather than hanging forever.
+			if (conn) {
+			try {
+				await conn.stop();
+			} catch (e) {
+				console.warn("[ecr] error stopping old connection (continuing):", e);
+			}
+			}
+			conn = null;
+			hub = null;
+
+			// 3. Re-negotiate from scratch using the last known config.
+			if (!config) {
+			throw new Error(__("Cannot reset: no prior session to restore. Reopen the POS."));
+			}
+
+			await ensureConnected();
+
+			// 4. Re-run check2 so the UI gets a fresh TID/connectivity confirmation,
+			// same as the original POS-open flow.
+			return alhamrani_payment.check_device();
+		},
+		
 		/** Load config for this till and connect. Returns unconfirmed items. */
 		// async init(pos_profile = null) {
 		// 	const r = await frappe.call({
