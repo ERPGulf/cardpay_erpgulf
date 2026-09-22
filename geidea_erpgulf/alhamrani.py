@@ -228,7 +228,7 @@ def select_terminal(pos_opening_shift, terminal):
     the shift opens. This exists for the case where a POS Profile lists several
     terminals and someone with authority needs to override the default.
     """
-    _require_manager()
+    # _require_manager()
     _validate_terminal_allowed(pos_opening_shift, terminal)
 
     frappe.db.set_value(
