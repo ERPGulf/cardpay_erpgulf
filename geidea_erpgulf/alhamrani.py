@@ -41,6 +41,7 @@ from __future__ import unicode_literals
 import json
 import time
 from datetime import datetime
+import re
 
 import frappe
 from frappe import _
@@ -48,6 +49,7 @@ from frappe.utils import cint, flt, get_datetime, now_datetime
 
 CARD_MOP = "credit card"          # matches the existing Geidea check in posapp.py
 MANAGER_ROLES = ("Accounts Manager", "System Manager")
+RRN_PATTERN = re.compile(r"^[A-Za-z0-9]{6,20}$")
 
 # --- response codes (AU doc s7.1 / s7.2) ----------------------------------
 
@@ -703,6 +705,65 @@ def resolve(txn, resolution, note=None):
     frappe.db.commit()
     return {"status": doc.status}
 
+@frappe.whitelist()
+def confirm_with_rrn(txn, rrn, note=None, pos_opening_shift=None):
+    """Approve an Unconfirmed transaction from the RRN printed on the terminal slip.
+
+    Used when the terminal approved but no response reached the PC (USB dropped,
+    cable pulled, service timeout). Flips the transaction to Approved so
+    stamp_and_guard() lets the invoice submit, and stores the RRN on the
+    transaction so _write_reference() copies it to payments[].custom_transaction_id.
+    """
+    rrn = re.sub(r"\s+", "", rrn or "").upper()
+    if not RRN_PATTERN.match(rrn):
+        frappe.throw(
+            _("Enter the RRN exactly as printed on the terminal slip (6 to 20 letters or digits)."),
+            title=_("Invalid RRN"),
+        )
+
+    doc = frappe.get_doc("Alhamrani Transaction", txn)
+
+    if doc.status == "Approved":
+        # Double click or retry after a network blip: same RRN is fine, anything else is not.
+        if (doc.rrn or "").upper() == rrn:
+            return {"status": doc.status, "approved": True, "rrn": doc.rrn, "txn": doc.name}
+        frappe.throw(_("Transaction {0} is already approved with a different RRN.").format(doc.name))
+
+    if doc.status not in ("Unconfirmed", "Pending"):
+        frappe.throw(_("Transaction {0} is {1} and cannot be confirmed from a slip.").format(doc.name, doc.status))
+
+    if doc.msg_id not in ("PUR", "REF"):
+        frappe.throw(_("Only purchase and refund transactions can be confirmed from a slip."))
+
+    if pos_opening_shift and doc.pos_opening_shift and doc.pos_opening_shift != pos_opening_shift:
+        frappe.throw(_("Transaction {0} belongs to a different shift.").format(doc.name))
+
+    # One slip, one sale. Stops the RRN of an earlier sale being typed in again.
+    if frappe.db.exists("Alhamrani Transaction", {
+        "rrn": rrn, "status": "Approved", "name": ("!=", doc.name),
+    }):
+        frappe.throw(_("RRN {0} is already recorded on another transaction.").format(rrn),
+                     title=_("RRN already used"))
+
+    user = frappe.session.user
+    audit = _("MANUAL RRN ENTRY: approved from the printed terminal slip, RRN {0}, entered by {1}.").format(rrn, user)
+    if note:
+        audit = "{0} {1}".format(audit, note)
+
+    doc.rrn = rrn
+    doc.status = "Approved"
+    doc.resolution = "Confirmed Approved at Terminal"
+    doc.resolution_note = audit
+    doc.resolved_by = user
+    doc.resolved_on = now_datetime()
+    if not doc.response_meaning:
+        doc.response_meaning = _("Confirmed manually from terminal slip")
+    # response_code is deliberately left alone: it must stay a real terminal code.
+    doc.save(ignore_permissions=True)
+    doc.add_comment("Info", audit)
+    frappe.db.commit()
+
+    return {"status": doc.status, "approved": True, "rrn": doc.rrn, "txn": doc.name, "manual": True}
 
 # --- submit guard ---------------------------------------------------------
 
