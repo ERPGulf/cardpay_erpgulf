@@ -172,11 +172,12 @@
    "read_only": 1
   },
   {
-   "fieldname": "rrn",
-   "fieldtype": "Data",
-   "label": "RRN",
-   "read_only": 1
-  },
+    "fieldname": "rrn",
+    "fieldtype": "Data",
+    "label": "RRN",
+    "read_only_depends_on": "eval:!(doc.status==\"Approved\" && doc.resolution==\"Confirmed Approved at Terminal\")",
+    "description": "Editable only on transactions approved by manual RRN entry."
+},
   {
    "fieldname": "tid",
    "fieldtype": "Data",
